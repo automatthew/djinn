@@ -1,0 +1,21 @@
+{
+  "name": "djinn",
+  "description": "Finite State Automata",
+  "author": "Matthew King",
+  "version": "0.1.0",
+  "main" : "./build/djinn.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/automatthew/djinn/"
+  },
+  "dependencies": {
+    "coffee-script": "1.2.0",
+    "underscore": "1.1.7",
+    "sprintf": "0.1.1",
+    "colors": "0.5.1"
+  },
+  "devDependencies": {
+  },
+  "engine": "node >= 0.6"
+}
+

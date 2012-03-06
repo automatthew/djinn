@@ -1,8 +1,8 @@
-require.paths.unshift('.');
+//require.paths.unshift('.');
 
 //var vows = require("vows");
 var assert = require('assert');
-var FSA = require('fsa').FSA;
+var FSA = require('../build/djinn').FSA;
 var fs = require("fs");
 
 
@@ -51,9 +51,9 @@ var restored = FSA.load(dump);
 
 testy(restored);
 
-var str = fs.readFileSync("curfsa.json");
+var str = fs.readFileSync("./test/curfsa.json");
 var restored = FSA.load(JSON.parse(str));
-restored.graph("curfsa.dot");
+restored.graph("./test/curfsa.dot");
 
 
 
