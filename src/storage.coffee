@@ -1,4 +1,6 @@
-var FSA = require('fsa').FSA;
+`
+
+var FSA = require('../build/djinn').FSA;
 
 var Storage = exports.Storage = function () {
   this.fsa = new FSA();
@@ -89,3 +91,4 @@ var isEmpty = function isEmpty(obj) {
 
 
 
+`

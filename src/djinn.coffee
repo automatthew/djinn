@@ -9,60 +9,44 @@ dotEdge = (from, to) ->
   [from, to].join(" -> ")
 
 dotNode = (node, attrs) ->
-  str = ""
-  str += node
-  str += dotAttrs(attrs) + ";\n"
-  str
+  "#{node}#{dotAttrs(attrs)};\n"
 
 dotAttrs = (obj) ->
   pairs = []
-  for key of obj
-    if !obj.hasOwnProperty(key)
-      continue
-    pairs.push(key + '=' + '"' + obj[key] + '"')
-
-  " [" + pairs.join(", ") + "]"
+  pairs = ("#{key}=\"#{val}\"" for own key, val of obj)
+  " [#{pairs.join(", ")}]"
 
 
-# directed graph walking
-`
-var step = function (current, val) {
-  var next = {length:0};
-  for (var id in current) {
-    if (current.hasOwnProperty(id) && id !== "length") {
-      var state = current[id][0];
-      state.arcs.forEach(function (arc) {
-        if (arc.test(val)) {
-          var leaf = new TreeNode(current[id][1], val);
-          arc.nextState.final ? leaf.final = true : null ;
-          next[arc.nextState.id] = [arc.nextState, leaf];
-          next.length++;
-        }
-      });
-    }
-  }
-  return next;
-};
+step = (current, val) ->
+  next = {size: 0}
+  for own id, thing of current when id != "size"
+    state = thing[0]
+    state.arcs.forEach (arc) ->
+      if arc.test(val)
+        leaf = new TreeNode(thing[1], val)
+        if arc.nextState.final
+          leaf.final = true
+        else
+          null
+        next[arc.nextState.id] = [arc.nextState, leaf]
+        next.size++
+  next
 
-var testMatch = function (list, val) {
-  var match = false;
-  for (var id in list) {
-    if (!list.hasOwnProperty(id)) { continue }
-    var state = list[id][0];
-    if (state && state.finalValue) {
-      var tip = list[id][1];
-      var path = [tip.val];
-      var t;
-      while (t = tip.parent) {
-        if (t.val) { path.unshift(t.val); }
-        tip = t;
-      }
-      match = [path, state.finalValue];
-    }
-  }
-  return match;
-}
-`
+
+testMatch = (list, val) ->
+  match = false
+  for own id, thing of list
+    state = thing[0]
+    if state && state.finalValue
+      tip = thing[1]
+      path = [tip.val]
+      t = null
+      while (t = tip.parent)
+        if t.val
+          path.unshift(t.val)
+        tip = t
+      match = [path, state.finalValue]
+  match
 
 class State
 
@@ -76,8 +60,7 @@ class State
 
   findArc: (val) ->
     for arc in @arcs
-      if arc.val == val
-        return arc
+      return arc if arc.val == val
 
 
 class Arc
