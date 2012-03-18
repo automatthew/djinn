@@ -20,16 +20,15 @@ Graphviz =
 
 step = (current, val) ->
   next = {size: 0}
-  for own id, thing of current when id != "size"
-    state = thing[0]
-    state.arcs.forEach (arc) ->
+  for own key, thing of current when key != "size"
+    thing.state.arcs.forEach (arc) ->
       if arc.test(val)
-        leaf = new TreeNode(thing[1], val)
+        node = new TreeNode(thing.tree, val)
         if arc.nextState.final
-          leaf.final = true
+          node.final = true
         else
           null
-        next[arc.nextState.id] = [arc.nextState, leaf]
+        next[arc.nextState.id] = {state: arc.nextState, tree: node}
         next.size++
   next
 
@@ -37,9 +36,9 @@ step = (current, val) ->
 testMatch = (list, val) ->
   match = false
   for own id, thing of list
-    state = thing[0]
+    state = thing.state
     if state && state.finalValue
-      tip = thing[1]
+      tip = thing.tree
       path = [tip.val]
       t = null
       while (tip = tip.parent)
@@ -84,7 +83,7 @@ class Arc
 
   formatTest: (val) ->
     if typeof(val) == "function"
-      "<function>"
+      "<lambda>"
     else if val == true
       return "<epsilon>"
     else
@@ -121,23 +120,18 @@ class FSA
     @finals[state.id] = state
 
   finalStates: ->
-    out = []
-    for id in finals
-      if finals.hasOwnProperty(id)
-        out.push(finals[id])
-    out
-
+    state for own id, state of finals
 
   test: (sequence) ->
-    state1 = @start
+    state = @start
     current = {}
     next = {}
-    tree = new TreeNode(null, null)
-    current[state1.id] = [state1, tree]
+    tree = new TreeNode()
+    current[state.id] = {state: state, tree: tree}
     for i in [0..sequence.length]
       val = sequence[i]
       next = step(current, val)
-      if next.length == 0
+      if next.size == 0
         return testMatch(current, val)
       else if i == sequence.length - 1
         return testMatch(next, val)
@@ -147,21 +141,21 @@ class FSA
 
   addPath: (array, finalValue) ->
     fsa = @
-    state1 = fsa.start
+    state = fsa.start
     ns = null
 
     for val in array
-      arc = state1.findArc(val)
+      arc = state.findArc(val)
       if arc
-        state1 = arc.nextState
+        state = arc.nextState
       else
         ns = fsa.createState()
-        state1.connect(val, ns)
-        state1 = ns
+        state.connect(val, ns)
+        state = ns
 
     # FIXME: if the state is already final, we duplicate it
     # in the FSM's finalStates array.
-    fsa.finalize(state1, finalValue)
+    fsa.finalize(state, finalValue)
     fsa
 
   traverse: (fn) ->
