@@ -42,10 +42,9 @@ testMatch = (list, val) ->
       tip = thing[1]
       path = [tip.val]
       t = null
-      while (t = tip.parent)
-        if t.val
-          path.unshift(t.val)
-        tip = t
+      while (tip = tip.parent)
+        if tip.val
+          path.unshift(tip.val)
       match = [path, state.finalValue]
   match
 
