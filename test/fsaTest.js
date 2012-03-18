@@ -28,19 +28,19 @@ fsa.graph("fsa.dot");
 //fsa.print();
 
 var testy = function (x) {
-  assert.deepEqual(x.test("matt")[0], "matt".split(""));
+  assert.deepEqual(x.test("matt").path, "matt".split(""));
   // Test final state value.
-  assert.deepEqual(x.test("matt")[1], 42);
-  assert.deepEqual(x.test("matthew")[0], "matthew".split(""));
+  assert.deepEqual(x.test("matt").finalValue, 42);
+  assert.deepEqual(x.test("matthew").path, "matthew".split(""));
   assert.deepEqual(x.test("mat"), false);
   assert.deepEqual(x.test("smatty"), false);
-  assert.deepEqual(x.test("lim")[0], "lim".split(""));
-  assert.deepEqual(x.test("dan")[0], "dan".split(""));
+  assert.deepEqual(x.test("lim").path, "lim".split(""));
+  assert.deepEqual(x.test("dan").path, "dan".split(""));
 
-  assert.deepEqual(x.test("fan")[0], "fan".split(""));
+  assert.deepEqual(x.test("fan").path, "fan".split(""));
   assert.deepEqual(x.test("fat"), false);
-  assert.deepEqual(x.test("fun")[0], "fun".split(""));
-  assert.deepEqual(x.test("ryan")[0], "ryan".split(""));
+  assert.deepEqual(x.test("fun").path, "fun".split(""));
+  assert.deepEqual(x.test("ryan").path, "ryan".split(""));
 }
 
 testy(fsa);

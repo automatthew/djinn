@@ -54,7 +54,7 @@ testMatch = (list, val) ->
       while (tip = tip.parent)
         if tip.val
           path.unshift(tip.val)
-      match = [path, state.finalValue]
+      match = { path: path, finalValue: state.finalValue }
   match
 
 class State
@@ -162,25 +162,9 @@ class FSA
     fsa.finalize(state, finalValue)
     fsa
 
-  traverse: (callback) ->
-    queue = @start.arcs.slice()
-    finalStates = []
-    nextState = null
-    arc = null
-
-    while queue.length > 0
-      arc = queue.shift()
-      nextState = arc.nextState
-      if nextState.finalValue
-        finalStates.push(nextState)
-      callback(arc)
-      queue = queue.concat(arc.nextState.arcs)
-
-    return finalStates
-
 
   # TODO: why are there two traversal functions?
-  traverse2: (callback) ->
+  traverse: (callback) ->
     current = {}
     current[@start.id] = @start
 
@@ -211,7 +195,7 @@ class FSA
 
   print: ->
     finalStates = []
-    @traverse2 (arc) ->
+    @traverse (arc) ->
       if arc.nextState.finalValue
         finalStates.push(arc.nextState)
       console.log(arc.state.id, arc.nextState.id, arc.val)
@@ -225,7 +209,7 @@ class FSA
 
     finalStates = []
 
-    @traverse2 (arc) ->
+    @traverse (arc) ->
       if arc.nextState.finalValue
         finalStates.push(arc.nextState)
       transitions.push
@@ -264,7 +248,7 @@ class FSA
       rankdir=LR;\n
       """
 
-    @traverse2 (arc) ->
+    @traverse (arc) ->
       string += arc.dotString()
 
     string += "}\n"
@@ -273,7 +257,20 @@ class FSA
       fs.writeFileSync(filename, string)
     string
 
+  old_traverse: (callback) ->
+    queue = @start.arcs.slice()
+    finalStates = []
+    nextState = null
+    arc = null
 
+    while queue.length > 0
+      arc = queue.shift()
+      nextState = arc.nextState
+      if nextState.finalValue
+        finalStates.push(nextState)
+      callback(arc)
+      queue = queue.concat(arc.nextState.arcs)
+    return finalStates
 
 
 
