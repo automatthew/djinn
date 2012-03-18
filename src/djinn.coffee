@@ -79,7 +79,7 @@ class Arc
     v = @formatTest(@val)
     if @nextState.finalValue
       str += dotNode(@nextState.id, {shape: "doublecircle"})
-    str += dotEdge(@state.id, @nextState.id) + dotAttrs({label: v}) + ";\n"
+    str += "#{dotEdge(@state.id, @nextState.id)}#{dotAttrs({label: v})};\n"
     str
 
   formatTest: (val) ->
@@ -128,48 +128,37 @@ class FSA
     out
 
 
-
-  # Bug that works: first use of val is undefined.
-  # Breaks when ported to coffee
-  `
-  FSA.prototype.test = function test (sequence) {
-    var state1 = this.start;
-    var current = {}, next = {};
-    var tree = new TreeNode(null, val);
-    current[state1.id] = [state1, tree];
-
-    for (var i=0,l=sequence.length;i<l;i++) {
-      var val = sequence[i];
-      next = step(current, val);
-      if (next.length === 0) {
-        return testMatch(current, val);
-      } else if (i === l-1) {
+  test: (sequence) ->
+    state1 = @start
+    current = {}
+    next = {}
+    tree = new TreeNode(null, null)
+    current[state1.id] = [state1, tree]
+    for i in [0..sequence.length]
+      val = sequence[i]
+      next = step(current, val)
+      if next.length == 0
+        return testMatch(current, val)
+      else if i == sequence.length - 1
         return testMatch(next, val)
-      } else {
-        current = next;
-      }
-    }
-  };
-  `
+      else
+        current = next
+
 
   addPath: (array, finalValue) ->
     fsa = @
     state1 = fsa.start
     ns = null
-    # FIXME native coffeescript iteration
-    `
-    for (var i=0, l=array.length; i<l; i++) {
-      var val = array[i];
-      var arc = state1.findArc(val);
-      if (arc) {
-        state1 = arc.nextState;
-      } else {
-        ns = fsa.createState();
-        state1.connect(val, ns);
-        state1 = ns;
-      }
-    }
-    `
+
+    for val in array
+      arc = state1.findArc(val)
+      if arc
+        state1 = arc.nextState
+      else
+        ns = fsa.createState()
+        state1.connect(val, ns)
+        state1 = ns
+
     # FIXME: if the state is already final, we duplicate it
     # in the FSM's finalStates array.
     fsa.finalize(state1, finalValue)
@@ -235,58 +224,49 @@ class FSA
 
   graph: (filename) ->
     fs = require("fs")
-    graph = "digraph finite_state_machine {\n"
-    graph += "rankdir=LR;\n"
+    string =
+      """
+      digraph finite_state_machine {\n
+      rankdir=LR;\n
+      """
 
-    finalStates = @traverse2 (arc) ->
-      graph += arc.dotString()
+    @traverse2 (arc) ->
+      string += arc.dotString()
 
-    graph += "}\n"
+    string += "}\n"
+
     if filename
-      fs.writeFileSync(filename, graph)
-    graph
+      fs.writeFileSync(filename, string)
+    string
 
 
+  traverse2: (fn) ->
+    current = {}
+    next = {}
+    current[@start.id] = @start
+    seenStates = {}
+    step2 = (current, callback) ->
+      next = {}
+      for own id, state of current
+        seenStates[state.id] = seenStates[state.id] || {}
+        state.arcs.forEach (arc) ->
+          # circularity bug.
+          # FIXME:  arc.val does not determine arc.
+          # need to check target state, too.
+          if !seenStates[state.id][arc.val]
+            seenStates[state.id][arc.val] = arc
+            callback(arc)
+            next[arc.nextState.id] = arc.nextState
+      for key, val of next
+        return next
+      return false
 
-
-
-`
-// TODO figure out why this is separate
-FSA.prototype.traverse2 = function (fn) {
-  var current = {}, next = {};
-  current[this.start.id] = this.start;
-  var seenStates = {};
-
-  var step2 = function (current, fn) {
-    var next = {};
-    for (var id in current) {
-      if (current.hasOwnProperty(id)) {
-        var state = current[id];
-        seenStates[state.id] = seenStates[state.id] || {};
-        state.arcs.forEach(function (arc) {
-          // circularity bug.
-          // FIXME:  arc.val does not determine arc.
-          // need to check target state, too.
-          if (!seenStates[state.id][arc.val]) {
-            seenStates[state.id][arc.val] = arc;
-            fn(arc);
-            next[arc.nextState.id] = arc.nextState;
-          }
-        });
-      }
-    }
-    // Warning: clever.
-    for (i in next) { return next; }
-    return false;
-  };
-
-  next = step2(current, fn);
-  while (next) {
-    current = next;
     next = step2(current, fn);
-  }
-};
+    while next
+      current = next
+      next = step2(current, fn)
 
-`
+
+
 
 exports.FSA = FSA
