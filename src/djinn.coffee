@@ -18,6 +18,16 @@ Graphviz =
     " [#{pairs.join(", ")}]"
 
 
+class TreeNode
+
+  constructor: (parent, @val, @children) ->
+    if parent
+      @parent = parent
+      @parent.children.push(@)
+    @children ||= []
+    @final = false
+
+
 step = (current, val) ->
   next = {size: 0}
   for own key, thing of current when key != "size"
@@ -89,30 +99,24 @@ class Arc
     else
       val
 
-class TreeNode
-
-  constructor: (parent, @val, @children) ->
-    if parent
-      @parent = parent
-      @parent.children.push(@)
-    @children ||= []
-    @final = false
-
-
 
 class FSA
 
   constructor: ->
-    @stateIdCounter = 0
+    @state_id_counter = 0
+    @arc_id_counter = 0
     @start = @createState()
     @finals = {}
 
-  getStateId: ->
-    @stateIdCounter++
+  next_state_id: ->
+    @state_id_counter++
+
+  next_arc_id: ->
+    @arc_id_counter++
 
   createState: (opts) ->
     opts ||= {}
-    id = opts.id || @getStateId()
+    id = opts.id || @next_state_id()
     new State(id, opts.value)
 
   finalize: (state, value) ->
@@ -158,26 +162,58 @@ class FSA
     fsa.finalize(state, finalValue)
     fsa
 
-  traverse: (fn) ->
-    queue = []
+  traverse: (callback) ->
+    queue = @start.arcs.slice()
     finalStates = []
     nextState = null
     arc = null
-    queue = queue.concat(@start.arcs)
 
     while queue.length > 0
       arc = queue.shift()
       nextState = arc.nextState
       if nextState.finalValue
         finalStates.push(nextState)
-      fn(arc)
+      callback(arc)
       queue = queue.concat(arc.nextState.arcs)
 
     return finalStates
 
 
+  # TODO: why are there two traversal functions?
+  traverse2: (callback) ->
+    current = {}
+    current[@start.id] = @start
+
+    next = {}
+    visitedStates = {}
+    step2 = (current, callback) ->
+      next = {}
+      for own id, state of current
+        visitedStates[state.id] = visitedStates[state.id] || {}
+        state.arcs.forEach (arc) ->
+          # circularity bug.
+          # FIXME:  arc.val does not determine arc.
+          # need to check target state, too.
+          if !visitedStates[state.id][arc.val]
+            visitedStates[state.id][arc.val] = arc
+            callback(arc)
+            next[arc.nextState.id] = arc.nextState
+
+      if Object.keys(next).length > 0
+        return next
+      else
+        return false
+
+    next = step2(current, callback)
+    while next
+      current = next
+      next = step2(current, callback)
+
   print: ->
-    finalStates = @traverse (arc) ->
+    finalStates = []
+    @traverse2 (arc) ->
+      if arc.nextState.finalValue
+        finalStates.push(arc.nextState)
       console.log(arc.state.id, arc.nextState.id, arc.val)
     for state in finalStates
       console.log state.id
@@ -187,14 +223,18 @@ class FSA
     data = {transitions: []}
     transitions = data.transitions
 
-    finalStates = @traverse (arc) ->
+    finalStates = []
+
+    @traverse2 (arc) ->
+      if arc.nextState.finalValue
+        finalStates.push(arc.nextState)
       transitions.push
         state: arc.state.id
         next: arc.nextState.id
         val: arc.val
 
     data.finalStates = finalStates.map (s) -> {id: s.id, value: s.finalValue}
-    data.stateIdCounter = this.stateIdCounter
+    data.state_id_counter = this.state_id_counter
     data
 
   @load: (dump) ->
@@ -212,7 +252,7 @@ class FSA
     for s in dump.finalStates
       state = tmpStates[s.id]
       fsa.finalize(state, s.value)
-    fsa.stateIdCounter = dump.stateIdCounter
+    fsa.state_id_counter = dump.state_id_counter
     fsa
 
 
@@ -234,31 +274,6 @@ class FSA
     string
 
 
-  traverse2: (fn) ->
-    current = {}
-    next = {}
-    current[@start.id] = @start
-    seenStates = {}
-    step2 = (current, callback) ->
-      next = {}
-      for own id, state of current
-        seenStates[state.id] = seenStates[state.id] || {}
-        state.arcs.forEach (arc) ->
-          # circularity bug.
-          # FIXME:  arc.val does not determine arc.
-          # need to check target state, too.
-          if !seenStates[state.id][arc.val]
-            seenStates[state.id][arc.val] = arc
-            callback(arc)
-            next[arc.nextState.id] = arc.nextState
-      for key, val of next
-        return next
-      return false
-
-    next = step2(current, fn);
-    while next
-      current = next
-      next = step2(current, fn)
 
 
 

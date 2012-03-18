@@ -23,7 +23,7 @@ fsa.addPath([function (v) {return true}, "y", "a", "n"])
 //var s1 = fsa.start;
 //s1.connect(true, s1);
 
-//fsa.graph("fsa.dot");
+fsa.graph("fsa.dot");
 
 //fsa.print();
 
@@ -39,13 +39,14 @@ var testy = function (x) {
 
   assert.deepEqual(x.test("fan")[0], "fan".split(""));
   assert.deepEqual(x.test("fat"), false);
-  //assert.deepEqual(x.test("fun"), true);
+  assert.deepEqual(x.test("fun")[0], "fun".split(""));
   assert.deepEqual(x.test("ryan")[0], "ryan".split(""));
 }
 
 testy(fsa);
 
 var dump = fsa.dump();
+//console.log(JSON.stringify(dump));
 var restored = FSA.load(dump);
 //restored.graph("restored.dot");
 
@@ -53,7 +54,7 @@ testy(restored);
 
 var str = fs.readFileSync("./test/curfsa.json");
 var restored = FSA.load(JSON.parse(str));
-restored.graph("./test/curfsa.dot");
+//restored.graph("./test/curfsa.dot");
 
 
 
