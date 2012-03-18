@@ -5,16 +5,17 @@
 
 # Graphviz formatting helpers
 
-dotEdge = (from, to) ->
-  [from, to].join(" -> ")
+Graphviz =
+  dotEdge: (from, to) ->
+    [from, to].join(" -> ")
 
-dotNode = (node, attrs) ->
-  "#{node}#{dotAttrs(attrs)};\n"
+  dotNode: (node, attrs) ->
+    "#{node}#{@dotAttrs(attrs)};\n"
 
-dotAttrs = (obj) ->
-  pairs = []
-  pairs = ("#{key}=\"#{val}\"" for own key, val of obj)
-  " [#{pairs.join(", ")}]"
+  dotAttrs: (obj) ->
+    pairs = []
+    pairs = ("#{key}=\"#{val}\"" for own key, val of obj)
+    " [#{pairs.join(", ")}]"
 
 
 step = (current, val) ->
@@ -78,8 +79,8 @@ class Arc
     str = ""
     v = @formatTest(@val)
     if @nextState.finalValue
-      str += dotNode(@nextState.id, {shape: "doublecircle"})
-    str += "#{dotEdge(@state.id, @nextState.id)}#{dotAttrs({label: v})};\n"
+      str += Graphviz.dotNode(@nextState.id, {shape: "doublecircle"})
+    str += "#{Graphviz.dotEdge(@state.id, @nextState.id)}#{Graphviz.dotAttrs({label: v})};\n"
     str
 
   formatTest: (val) ->
