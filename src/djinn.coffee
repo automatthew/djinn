@@ -197,8 +197,8 @@ class FSA
           # circularity bug.
           # FIXME:  arc.val does not determine arc.
           # need to check target state, too.
-          if !visitedStates[state.id][arc.val]
-            visitedStates[state.id][arc.val] = arc
+          #if !visitedStates[state.id][arc.val]
+            #visitedStates[state.id][arc.val] = arc
             callback(arc)
             next[arc.nextState.id] = arc.nextState
 
