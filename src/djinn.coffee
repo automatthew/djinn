@@ -35,7 +35,7 @@ step = (current, val) ->
       if arc.test(val)
         node = new TreeNode(thing.tree, val)
         if arc.nextState.final
-          node.final = true
+          next.found_match = true
         else
           null
         next[arc.nextState.id] = {state: arc.nextState, tree: node}
@@ -51,6 +51,8 @@ testMatch = (list, val) ->
       tip = thing.tree
       path = [tip.val]
       t = null
+      # backtrack up the tree to find the path that
+      # matched
       while (tip = tip.parent)
         if tip.val
           path.unshift(tip.val)
@@ -132,10 +134,10 @@ class FSA
     next = {}
     tree = new TreeNode()
     current[state.id] = {state: state, tree: tree}
-    for i in [0..sequence.length]
+    for i in [0..sequence.length-1]
       val = sequence[i]
       next = step(current, val)
-      if next.size == 0
+      if next.found_match
         return testMatch(current, val)
       else if i == sequence.length - 1
         return testMatch(next, val)
@@ -143,24 +145,41 @@ class FSA
         current = next
 
 
-  addPath: (array, finalValue) ->
+  addPath: (array, finalValue, options={}) ->
     fsa = @
-    state = fsa.start
-    ns = null
+    first_state = options.from || fsa.start
+    if options.to
+      last_state = options.to
+    else
+      last_state = fsa.createState()
+      fsa.finalize(last_state, finalValue)
 
-    for val in array
-      arc = state.findArc(val)
-      if arc
-        state = arc.nextState
-      else
-        ns = fsa.createState()
-        state.connect(val, ns)
-        state = ns
+    @connect_states(array, first_state, last_state)
 
-    # FIXME: if the state is already final, we duplicate it
-    # in the FSM's finalStates array.
-    fsa.finalize(state, finalValue)
-    fsa
+
+  connect_states: (array, first_state, last_state) ->
+    fsa = @
+    state = first_state
+    state_list = [state]
+
+    l = array.length - 2
+    if l >= 0
+      for i in [0..l]
+        val = array[i]
+        arc = state.findArc(val)
+        if arc
+          state = arc.nextState
+        else
+          next_state = fsa.createState()
+          state.connect(val, next_state)
+          state = next_state
+        state_list.push(state)
+
+    last_val = array[array.length - 1]
+    state.connect(last_val, last_state)
+    state_list.push(last_state)
+    state_list
+
 
 
   # TODO: why are there two traversal functions?
