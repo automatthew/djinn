@@ -61,45 +61,49 @@ testMatch = (list, val) ->
 
 class State
 
-  constructor: (@id, @finalValue) ->
+  constructor: (@fsa, @finalValue) ->
+    @id = @fsa.next_state_id()
     @arcs = []
 
   connect: (val, nextState) ->
-    arc = new Arc(@, val, nextState)
+    arc = new Arc(@, @fsa.next_arc_id(), val, nextState)
     @arcs.push(arc)
     arc
 
   findArc: (val) ->
     for arc in @arcs
-      return arc if arc.val == val
+      return arc if arc.value == val
 
 
 class Arc
 
-  constructor: (@state, @val, @nextState) ->
-    if typeof(@val) == "function"
-      @test = @val
+  constructor: (@state, @id, @value, @nextState) ->
+    if typeof(@value) == "function"
+      @test = @value
     @nextState ||= null
 
   # It would be more fun if this were derived from the FSA somehow
-  test: (val) ->
-    @val == val || @val == true
+  test: (value) ->
+    @value == value || @value == true
 
   dotString: ->
-    str = ""
-    v = @formatTest(@val)
+    v = @formatValue(@value)
+    edge = Graphviz.dotEdge(@state.id, @nextState.id)
+    attrs = Graphviz.dotAttrs({label: "#{v}"})
+    output = "#{edge}#{attrs};\n"
     if @nextState.finalValue
-      str += Graphviz.dotNode(@nextState.id, {shape: "doublecircle"})
-    str += "#{Graphviz.dotEdge(@state.id, @nextState.id)}#{Graphviz.dotAttrs({label: v})};\n"
-    str
+      node = Graphviz.dotNode(@nextState.id, {shape: "doublecircle"})
+      output += node
 
-  formatTest: (val) ->
-    if typeof(val) == "function"
+    output
+
+  formatValue: (value) ->
+    if typeof(value) == "function"
       "<lambda>"
-    else if val == true
+    else if value == true
       return "<epsilon>"
     else
-      val
+      value
 
 
 class FSA
@@ -119,7 +123,7 @@ class FSA
   createState: (opts) ->
     opts ||= {}
     id = opts.id || @next_state_id()
-    new State(id, opts.value)
+    new State(@, opts.value)
 
   finalize: (state, value) ->
     state.finalValue = value || true
@@ -181,8 +185,6 @@ class FSA
     state_list
 
 
-
-  # TODO: why are there two traversal functions?
   traverse: (callback) ->
     current = {}
     current[@start.id] = @start
@@ -195,10 +197,15 @@ class FSA
         visitedStates[state.id] = visitedStates[state.id] || {}
         state.arcs.forEach (arc) ->
           # circularity bug.
-          # FIXME:  arc.val does not determine arc.
+          # FIXME:  arc.value does not uniquely determine arc.
           # need to check target state, too.
-          #if !visitedStates[state.id][arc.val]
-            #visitedStates[state.id][arc.val] = arc
+          # Or just give arcs ids.
+          key = "#{arc.value},#{arc.nextState.id}"
+          if visitedStates[state.id][arc.id]
+            console.log "skipping {#{arc.id}}"
+          else
+            #console.log "visiting {#{key}}"
+            visitedStates[state.id][arc.id] = arc
             callback(arc)
             next[arc.nextState.id] = arc.nextState
 
@@ -217,7 +224,7 @@ class FSA
     @traverse (arc) ->
       if arc.nextState.finalValue
         finalStates.push(arc.nextState)
-      console.log(arc.state.id, arc.nextState.id, arc.val)
+      console.log(arc.state.id, arc.nextState.id, arc.value)
     for state in finalStates
       console.log state.id
 
@@ -234,7 +241,7 @@ class FSA
       transitions.push
         state: arc.state.id
         next: arc.nextState.id
-        val: arc.val
+        val: arc.value
 
     data.finalStates = finalStates.map (s) -> {id: s.id, value: s.finalValue}
     data.state_id_counter = this.state_id_counter

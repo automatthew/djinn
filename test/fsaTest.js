@@ -9,19 +9,22 @@ var fs = require("fs");
 //var joinLog = function (val) { console.log(val.join(""));};
 //var log = function (val) { console.log(val);};
 
-var vowels = ["a", "e", "i", "o", "u"];
 
 var fsa = new FSA();
-fsa.addPath(["m", "a", "t", "t"], 42);
 fsa.addPath(["m", "a", "t", "t", "h", "e", "w"])
-fsa.addPath("margin".split(""))
-fsa.addPath([true, "i", "m"])
-fsa.addPath(["d", "o", "n"])
-fsa.addPath(["d", "a", "n"])
+fsa.addPath(["m", "a", "t", "t"], 42);
+var state_list = fsa.addPath("margin".split(""))
+state_list[2].connect("t", state_list[1]);
+fsa.addPath(["t", true, "m"])
+
+var state_list = fsa.addPath(["d", "o", "n"])
+var first = fsa.start;
+var last = state_list[state_list.length - 1];
+fsa.addPath("dad".split(''), null, {from: first, to: last})
+fsa.addPath("ar".split(''), null, {from: state_list[1], to: state_list[2]})
+
 fsa.addPath(["f", true, "n"])
 fsa.addPath([function (v) {return true}, "y", "a", "n"])
-//var s1 = fsa.start;
-//s1.connect(true, s1);
 
 fsa.graph("fsa.dot");
 
@@ -32,10 +35,11 @@ var testy = function (x) {
   // Test final state value.
   assert.deepEqual(x.test("matt").finalValue, 42);
   assert.deepEqual(x.test("matthew").path, "matthew".split(""));
+  assert.deepEqual(x.test("matargin").path, "matargin".split(""));
   assert.deepEqual(x.test("mat"), false);
   assert.deepEqual(x.test("smatty"), false);
-  assert.deepEqual(x.test("lim").path, "lim".split(""));
-  assert.deepEqual(x.test("dan").path, "dan".split(""));
+  assert.deepEqual(x.test("tim").path, "tim".split(""));
+  assert.deepEqual(x.test("dad").path, "dad".split(""));
 
   assert.deepEqual(x.test("fan").path, "fan".split(""));
   assert.deepEqual(x.test("fat"), false);
@@ -46,7 +50,6 @@ var testy = function (x) {
 testy(fsa);
 
 var dump = fsa.dump();
-//console.log(JSON.stringify(dump));
 var restored = FSA.load(dump);
 //restored.graph("restored.dot");
 
