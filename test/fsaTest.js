@@ -44,7 +44,7 @@ var testy = function (x) {
   assert(!x.accept_sequence("daddyo"));
   assert(!x.accept_sequence("fat"));
 
-  assert.equal(x.match_sequence("matt").finalValue, 42);
+  assert.equal(x.match_sequence("matt").final_value, 42);
   assert.deepEqual(x.match_sequence("tim").path, ["t", true, "m"]);
 }
 

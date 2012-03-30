@@ -62,7 +62,7 @@ class Digraph
       for vertex in current
         visited_arcs[vertex.id] ||= {}
         # iterate over only those arcs we haven't seen yet
-        for arc in vertex.arcs when !visited_arcs[vertex.id][arc.id]
+        for arc in vertex.arcs() when !visited_arcs[vertex.id][arc.id]
           visited_arcs[vertex.id][arc.id] = arc
           callback(arc)
           next.push(arc.next_vertex)
@@ -134,12 +134,12 @@ class FSA extends Digraph
     @final_states = {}
 
   finalize: (state, value) ->
-    state.finalValue = value || true
+    state.final_value = value || true
     @final_states[state.id] = state
 
-  add_path: (array, finalValue, options={}) ->
+  add_path: (array, final_value, options={}) ->
     vertices = super(array, options)
-    @finalize(vertices[vertices.length-1], finalValue)
+    @finalize(vertices[vertices.length-1], final_value)
     vertices
 
   print_att: ->
@@ -151,7 +151,7 @@ class FSA extends Digraph
     final_states = []
     output = []
     @traverse (arc) ->
-      if arc.next_vertex.finalValue
+      if arc.next_vertex.final_value
         final_states.push(arc.next_vertex)
       output.push(arc.format_att())
     for vertex in final_states
@@ -161,9 +161,9 @@ class FSA extends Digraph
   dump: ->
     final_states = []
     data = super (arc) ->
-      if arc.next_vertex.finalValue
+      if arc.next_vertex.final_value
         state = arc.next_vertex
-        final_states.push({id: state.id, value: state.finalValue})
+        final_states.push({id: state.id, value: state.final_value})
 
     data.final_states = final_states
     data
@@ -178,7 +178,7 @@ class FSA extends Digraph
 
   accept_sequence: (sequence) ->
     for stage in @try_sequence(sequence)
-      return true if stage.state.finalValue
+      return true if stage.state.final_value
 
   match_sequence: (sequence) ->
     list = @try_sequence(sequence)
@@ -206,13 +206,13 @@ class FSA extends Digraph
     matches = []
     for stage in next
       state = stage.state
-      if state.finalValue
+      if state.final_value
         tip = stage.tracker
         path = [tip.val]
         # backtrack up the tree to find the path that matched
         while (tip = tip.parent)
           path.unshift(tip.val) if tip.val
-        match = { path: path, finalValue: state.finalValue }
+        match = { path: path, final_value: state.final_value }
         matches.push(match)
     matches[0] || false
 
@@ -225,23 +225,26 @@ class MatchTracker
     new MatchTracker(@, val)
 
 class State
-  constructor: (@digraph, @finalValue) ->
+  constructor: (@digraph, @final_value) ->
     @arc_class = @digraph.arc_class
     @id = @digraph.next_vertex_id()
-    @arcs = []
+    @_arcs = []
 
   connect: (val, next_vertex) ->
     arc = new @arc_class(@, @digraph.next_arc_id(), val, next_vertex)
-    @arcs.push(arc)
+    @_arcs.push(arc)
     arc
 
+  arcs: ->
+    @_arcs
+
   find_arc: (val) ->
-    for arc in @arcs
+    for arc in @_arcs
       return arc if arc.value == val
 
   test: (val, tracker) ->
     stages = []
-    for arc in @arcs when arc.test(val)
+    for arc in @_arcs when arc.test(val)
       stages.push
         state: arc.next_vertex
         tracker: tracker.next(arc.value)
@@ -262,7 +265,7 @@ class Arc
     edge = Graphviz.dotEdge(@vertex.id, @next_vertex.id)
     attrs = Graphviz.dotAttrs({label: "#{@dot_label()}"})
     output = "#{edge}#{attrs};\n"
-    if @next_vertex.finalValue
+    if @next_vertex.final_value
       node = Graphviz.dotNode(@next_vertex.id, {shape: "doublecircle"})
       output += node
 
