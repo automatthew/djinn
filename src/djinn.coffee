@@ -17,7 +17,6 @@ class Digraph
   next_arc_id: ->
     @arc_id_counter++
 
-  # FIXME: why use opts instead of two args?
   create_vertex: (opts) ->
     opts ||= {}
     id = opts.id || @next_vertex_id()
@@ -134,12 +133,12 @@ class FSA extends Digraph
     @final_states = {}
 
   finalize: (state, value) ->
-    state.final_value = value || true
+    state.value = value || true
     @final_states[state.id] = state
 
-  add_path: (array, final_value, options={}) ->
+  add_path: (array, value, options={}) ->
     vertices = super(array, options)
-    @finalize(vertices[vertices.length-1], final_value)
+    @finalize(vertices[vertices.length-1], value)
     vertices
 
   print_att: ->
@@ -151,7 +150,7 @@ class FSA extends Digraph
     final_states = []
     output = []
     @traverse (arc) ->
-      if arc.next_vertex.final_value
+      if arc.next_vertex.value
         final_states.push(arc.next_vertex)
       output.push(arc.format_att())
     for vertex in final_states
@@ -161,9 +160,9 @@ class FSA extends Digraph
   dump: ->
     final_states = []
     data = super (arc) ->
-      if arc.next_vertex.final_value
+      if arc.next_vertex.value
         state = arc.next_vertex
-        final_states.push({id: state.id, value: state.final_value})
+        final_states.push({id: state.id, value: state.value})
 
     data.final_states = final_states
     data
@@ -177,8 +176,8 @@ class FSA extends Digraph
     @
 
   accept_sequence: (sequence) ->
-    for stage in @try_sequence(sequence)
-      return true if stage.state.final_value
+    for tracker in @try_sequence(sequence)
+      return true if tracker.state.value
 
   match_sequence: (sequence) ->
     list = @try_sequence(sequence)
@@ -186,13 +185,15 @@ class FSA extends Digraph
 
   try_sequence: (sequence) ->
     state = @source
-    current = [{state: state, tracker: new MatchTracker()}]
+    current = [new MatchTracker(null, state)]
+
     sequence_length = sequence.length - 1
     for i in [0..sequence_length]
       val = sequence[i]
       next = []
-      for stage in current
-        next = next.concat(stage.state.test(val, stage.tracker))
+      for tracker in current
+        for arc in tracker.state.arcs() when arc.test(val)
+          next.push(tracker.track(arc.next_vertex, arc.value))
 
       if i == sequence_length
         return next
@@ -201,31 +202,31 @@ class FSA extends Digraph
       else
         current = next
 
-  compile_matches: (next, val) ->
+  compile_matches: (list, val) ->
     match = false
     matches = []
-    for stage in next
-      state = stage.state
-      if state.final_value
-        tip = stage.tracker
-        path = [tip.val]
+    for tracker in list
+      state = tracker.state
+      if state.value
+        path = [tracker.val]
         # backtrack up the tree to find the path that matched
-        while (tip = tip.parent)
-          path.unshift(tip.val) if tip.val
-        match = { path: path, final_value: state.final_value }
+        while (tracker = tracker.parent)
+          # TODO: this is skeezy.  The only tracker that should
+          # not have a value is the root of the tree.
+          path.unshift(tracker.val) if tracker.val
+        match = { path: path, final_state: state }
         matches.push(match)
     matches[0] || false
 
 
 class MatchTracker
+  constructor: (@parent, @state, @val) ->
 
-  constructor: (@parent, @val) ->
-
-  next: (val) ->
-    new MatchTracker(@, val)
+  track: (state, val) ->
+    new MatchTracker(@, state, val)
 
 class State
-  constructor: (@digraph, @final_value) ->
+  constructor: (@digraph, @value) ->
     @arc_class = @digraph.arc_class
     @id = @digraph.next_vertex_id()
     @_arcs = []
@@ -242,14 +243,6 @@ class State
     for arc in @_arcs
       return arc if arc.value == val
 
-  test: (val, tracker) ->
-    stages = []
-    for arc in @_arcs when arc.test(val)
-      stages.push
-        state: arc.next_vertex
-        tracker: tracker.next(arc.value)
-    stages
-
 
 class Arc
   constructor: (@vertex, @id, @value, @next_vertex) ->
@@ -265,7 +258,7 @@ class Arc
     edge = Graphviz.dotEdge(@vertex.id, @next_vertex.id)
     attrs = Graphviz.dotAttrs({label: "#{@dot_label()}"})
     output = "#{edge}#{attrs};\n"
-    if @next_vertex.final_value
+    if @next_vertex.value
       node = Graphviz.dotNode(@next_vertex.id, {shape: "doublecircle"})
       output += node
 
