@@ -4,19 +4,6 @@
 
 Graphviz = require("./graphviz")
 
-class TreeNode
-
-  constructor: (parent, @val, @children) ->
-    if parent
-      @parent = parent
-      @parent.children.push(@)
-    @children ||= []
-    @final = false
-
-
-
-
-
 class Digraph
 
   constructor: (@vertex_class, @arc_class) ->
@@ -36,27 +23,26 @@ class Digraph
     id = opts.id || @next_vertex_id()
     new @vertex_class(@, opts.value)
 
-  add_path: (array, finalValue, options={}) ->
+  add_path: (array, options={}) ->
     digraph = @
     first_vertex = options.from || digraph.source
     if options.to
       last_vertex = options.to
     else
       last_vertex = digraph.create_vertex()
-      digraph.finalize(last_vertex, finalValue)
     @connect_vertices(array, first_vertex, last_vertex)
 
-  connect_vertices: (array, first_vertex, last_vertex) ->
+  connect_vertices: (values, first_vertex, last_vertex) ->
     digraph = @
     vertex = first_vertex
     vertex_list = [vertex]
 
-    l = array.length - 2
+    # we need to treat the last value differently.
+    l = values.length - 2
     if l >= 0
       for i in [0..l]
-        val = array[i]
-        arc = vertex.find_arc(val)
-        if arc
+        val = values[i]
+        if (arc = vertex.find_arc(val))
           vertex = arc.next_vertex
         else
           next_vertex = digraph.create_vertex()
@@ -64,8 +50,8 @@ class Digraph
           vertex = next_vertex
         vertex_list.push(vertex)
 
-    last_val = array[array.length - 1]
-    vertex.connect(last_val, last_vertex)
+    last_value = values[values.length - 1]
+    vertex.connect(last_value, last_vertex)
     vertex_list.push(last_vertex)
     vertex_list
 
@@ -74,18 +60,18 @@ class Digraph
     current[@source.id] = @source
 
     next = {}
-    visted_vertices = {}
+    visited_vertices = {}
     step2 = (current, callback) ->
       next = {}
       for own id, vertex of current
-        visted_vertices[vertex.id] = visted_vertices[vertex.id] || {}
+        visited_vertices[vertex.id] = visited_vertices[vertex.id] || {}
         vertex.arcs.forEach (arc) ->
-          if visted_vertices[vertex.id][arc.id]
+          if visited_vertices[vertex.id][arc.id]
             #console.log "skipping {#{arc.id}}"
           else
             #key = "#{arc.value},#{arc.next_vertex.id}"
             #console.log "visiting {#{key}}"
-            visted_vertices[vertex.id][arc.id] = arc
+            visited_vertices[vertex.id][arc.id] = arc
             callback(arc)
             next[arc.next_vertex.id] = arc.next_vertex
 
@@ -127,25 +113,10 @@ class FSA extends Digraph
   finalStates: ->
     state for own id, state of finals
 
-  accept_sequence: (sequence) ->
-    state = @source
-    current = {}
-    next = {}
-    node = new TreeNode()
-    current[state.id] = {state: state, tree: node}
-    for i in [0..sequence.length-1]
-      val = sequence[i]
-      next = {}
-      for own key, thing of current
-        thing.state.test(val, thing, next)
-
-      # TODO: this looks fishy.
-      if next.found_match
-        return matched_path(current, val)
-      else if i == sequence.length - 1
-        return matched_path(next, val)
-      else
-        current = next
+  add_path: (array, finalValue, options={}) ->
+    vertices = super(array, options)
+    @finalize(vertices[vertices.length-1], finalValue)
+    vertices
 
   print_att: ->
     finalStates = []
@@ -195,24 +166,45 @@ class FSA extends Digraph
     fsa.vertex_id_counter = dump.vertex_id_counter
     fsa
 
+  accept_sequence: (sequence) ->
+    state = @source
+    tracker = new PathTracker()
+    current = [{state: state, tracker: tracker}]
+    sequence_length = sequence.length - 1
+    for i in [0..sequence_length]
+      val = sequence[i]
+      next = []
+      for stage in current
+        next = next.concat(stage.state.test(val, stage.tracker))
+
+      if i == sequence_length
+        return matched_path(next, val)
+      else if next.length == 0
+        return false
+      else
+        current = next
 
 
-
+# TODO: we return either false or an object.  I don't like this.
 matched_path = (list, val) ->
   match = false
-  for own id, thing of list
-    state = thing.state
+  for stage in list
+    state = stage.state
     if state && state.finalValue
-      tip = thing.tree
+      tip = stage.tracker
       path = [tip.val]
-      t = null
-      # backtrack up the tree to find the path that
-      # matched
+      # backtrack up the tree to find the path that matched
       while (tip = tip.parent)
-        if tip.val
-          path.unshift(tip.val)
+        path.unshift(tip.val) if tip.val
       match = { path: path, finalValue: state.finalValue }
   match
+
+class PathTracker
+
+  constructor: (@parent, @val) ->
+
+  next: (val) ->
+    new PathTracker(@, val)
 
 class State
   constructor: (@digraph, @finalValue) ->
@@ -229,13 +221,14 @@ class State
     for arc in @arcs
       return arc if arc.value == val
 
-  test: (val, thing, next_stage) ->
-    for arc in @arcs
-      if arc.test(val)
-        node = new TreeNode(thing.tree, val)
-        if arc.next_vertex.final
-          next_stage.found_match = true
-        next_stage[arc.next_vertex.id] = {state: arc.next_vertex, tree: node}
+  test: (val, tracker) ->
+    stages = []
+    for arc in @arcs when arc.test(val)
+      stages.push
+        state: arc.next_vertex
+        tracker: tracker.next(val)
+    stages
+
 
 class Arc
   constructor: (@vertex, @id, @value, @next_vertex) ->

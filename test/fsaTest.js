@@ -40,6 +40,7 @@ var testy = function (x) {
   assert.deepEqual(x.accept_sequence("smatty"), false);
   assert.deepEqual(x.accept_sequence("tim").path, "tim".split(""));
   assert.deepEqual(x.accept_sequence("dad").path, "dad".split(""));
+  assert.deepEqual(x.accept_sequence("daddyo"), false);
 
   assert.deepEqual(x.accept_sequence("fan").path, "fan".split(""));
   assert.deepEqual(x.accept_sequence("fat"), false);
