@@ -105,9 +105,9 @@ class Digraph
     data.arc_id_counter = this.arc_id_counter
     data
 
-  @load: (dump, transition_callback, states_callback) ->
+  load: (dump, transition_callback, states_callback) ->
+    digraph = @
     transitions = dump.transitions
-    digraph = new @()
     tmpStates = {}
     tmpStates[digraph.source.id] = digraph.source
 
@@ -121,7 +121,11 @@ class Digraph
     digraph.vertex_id_counter = dump.vertex_id_counter
     digraph.arc_id_counter = dump.arc_id_counter
     states_callback(tmpStates) if states_callback
-    digraph
+    @
+
+  @load: (args...) ->
+    new @().load(args...)
+
 
 class FSA extends Digraph
 
@@ -165,16 +169,13 @@ class FSA extends Digraph
     data.final_states = final_states
     data
 
-  @load: (dump) ->
-    tmp_states = null
-    fsa = super dump, null, (states) ->
-      tmp_states = states
-
-    for state in dump.final_states
-      vertex = tmp_states[state.id]
-      fsa.finalize(vertex, state.value)
-
-    fsa
+  load: (dump) ->
+    fsa = @
+    super dump, null, (all_states) ->
+      for state in dump.final_states
+        vertex = all_states[state.id]
+        fsa.finalize(vertex, state.value)
+    @
 
   accept_sequence: (sequence) ->
     state = @source
