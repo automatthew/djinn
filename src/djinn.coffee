@@ -55,35 +55,25 @@ class Digraph
     vertex_list.push(last_vertex)
     vertex_list
 
+  stepper: ->
+    visited_arcs = {}
+    (current, callback) ->
+      next = []
+      for vertex in current
+        visited_arcs[vertex.id] ||= {}
+        # iterate over only those arcs we haven't seen yet
+        for arc in vertex.arcs when !visited_arcs[vertex.id][arc.id]
+          visited_arcs[vertex.id][arc.id] = arc
+          callback(arc)
+          next.push(arc.next_vertex)
+      return next
+
+
   traverse: (callback) ->
-    current = {}
-    current[@source.id] = @source
-
-    next = {}
-    visited_vertices = {}
-    step2 = (current, callback) ->
-      next = {}
-      for own id, vertex of current
-        visited_vertices[vertex.id] = visited_vertices[vertex.id] || {}
-        vertex.arcs.forEach (arc) ->
-          if visited_vertices[vertex.id][arc.id]
-            #console.log "skipping {#{arc.id}}"
-          else
-            #key = "#{arc.value},#{arc.next_vertex.id}"
-            #console.log "visiting {#{key}}"
-            visited_vertices[vertex.id][arc.id] = arc
-            callback(arc)
-            next[arc.next_vertex.id] = arc.next_vertex
-
-      if Object.keys(next).length > 0
-        return next
-      else
-        return false
-
-    next = step2(current, callback)
-    while next
-      current = next
-      next = step2(current, callback)
+    _traverse = @stepper()
+    next = _traverse([@source], callback)
+    while next.length > 0
+      next = _traverse(next, callback)
 
   graph: (filename) ->
     fs = require("fs")
@@ -100,18 +90,48 @@ class Digraph
       fs.writeFileSync(filename, string)
     string
 
+  dump: (callback) ->
+    data = {transitions: []}
+    transitions = data.transitions
+
+    @traverse (arc) ->
+      callback(arc) if callback
+      transitions.push
+        vertex: arc.vertex.id
+        next: arc.next_vertex.id
+        val: arc.value
+
+    data.vertex_id_counter = this.vertex_id_counter
+    data.arc_id_counter = this.arc_id_counter
+    data
+
+  @load: (dump, transition_callback, states_callback) ->
+    transitions = dump.transitions
+    digraph = new @()
+    tmpStates = {}
+    tmpStates[digraph.source.id] = digraph.source
+
+    for transition in transitions
+      tmpStates[transition.vertex] ||= digraph.create_vertex({id: transition.vertex})
+      tmpStates[transition.next] ||= digraph.create_vertex({id: transition.next})
+      current = tmpStates[transition.vertex]
+      next = tmpStates[transition.next]
+      current.connect(transition.val, next)
+      callback(transition) if transition_callback
+    digraph.vertex_id_counter = dump.vertex_id_counter
+    digraph.arc_id_counter = dump.arc_id_counter
+    states_callback(tmpStates) if states_callback
+    digraph
+
 class FSA extends Digraph
 
   constructor: ->
     super(State, Arc)
-    @finals = {}
+    @final_states = {}
 
   finalize: (state, value) ->
     state.finalValue = value || true
-    @finals[state.id] = state
-
-  finalStates: ->
-    state for own id, state of finals
+    @final_states[state.id] = state
 
   add_path: (array, finalValue, options={}) ->
     vertices = super(array, options)
@@ -119,51 +139,41 @@ class FSA extends Digraph
     vertices
 
   print_att: ->
-    finalStates = []
+    output = @format_att()
+    console.log(output.join("\n"))
+
+  # TODO: is this even correct for AT&T fsm anymore?
+  format_att: ->
+    final_states = []
     output = []
     @traverse (arc) ->
       if arc.next_vertex.finalValue
-        finalStates.push(arc.next_vertex)
+        final_states.push(arc.next_vertex)
       output.push(arc.print())
-    for vertex in finalStates
+    for vertex in final_states
       output.push(vertex.id)
+    output
 
-    console.log(output.join("\n"))
 
   dump: ->
-    data = {transitions: []}
-    transitions = data.transitions
-
-    finalStates = []
-
-    @traverse (arc) ->
+    final_states = []
+    data = super (arc) ->
       if arc.next_vertex.finalValue
-        finalStates.push(arc.next_vertex)
-      transitions.push
-        vertex: arc.vertex.id
-        next: arc.next_vertex.id
-        val: arc.value
+        state = arc.next_vertex
+        final_states.push({id: state.id, value: state.finalValue})
 
-    data.finalStates = finalStates.map (s) -> {id: s.id, value: s.finalValue}
-    data.vertex_id_counter = this.vertex_id_counter
+    data.final_states = final_states
     data
 
   @load: (dump) ->
-    transitions = dump.transitions
-    fsa = new @()
-    tmpStates = {}
-    tmpStates[fsa.source.id] = fsa.source
+    tmp_states = null
+    fsa = super dump, null, (states) ->
+      tmp_states = states
 
-    for trans in transitions
-      tmpStates[trans.vertex] ||= fsa.create_vertex({id: trans.vertex})
-      tmpStates[trans.next] ||= fsa.create_vertex({id: trans.next})
-      current = tmpStates[trans.vertex]
-      next = tmpStates[trans.next]
-      current.connect(trans.val, next)
-    for s in dump.finalStates
-      vertex = tmpStates[s.id]
-      fsa.finalize(vertex, s.value)
-    fsa.vertex_id_counter = dump.vertex_id_counter
+    for state in dump.final_states
+      vertex = tmp_states[state.id]
+      fsa.finalize(vertex, state.value)
+
     fsa
 
   accept_sequence: (sequence) ->
@@ -239,7 +249,7 @@ class Arc
     @value == value || @value == true
 
   print: ->
-    "#{@vertex.id} #{@next_vertex.id} #{@value}"
+    "#{@vertex.id} #{@next_vertex.id} #{@formatValue(@value)}"
 
   dotString: ->
     v = @formatValue(@value)
