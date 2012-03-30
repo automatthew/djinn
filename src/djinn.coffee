@@ -6,7 +6,7 @@ Graphviz = require("./graphviz")
 
 class Digraph
 
-  constructor: (@vertex_class, @arc_class) ->
+  constructor: () ->
     @vertex_id_counter = 0
     @arc_id_counter = 0
     @source = @create_vertex()
@@ -20,7 +20,7 @@ class Digraph
   create_vertex: (opts) ->
     opts ||= {}
     id = opts.id || @next_vertex_id()
-    new @vertex_class(@, opts.value)
+    new @constructor.Vertex(@, opts.value)
 
   add_path: (array, options={}) ->
     digraph = @
@@ -128,8 +128,60 @@ class Digraph
 
 class FSA extends Digraph
 
+
+  # How do you extend? from superclass?
+  class @Vertex
+    constructor: (@digraph, @value) ->
+      @arc_class = @digraph.constructor.Arc
+      @id = @digraph.next_vertex_id()
+      @_arcs = []
+
+    connect: (val, next_vertex) ->
+      arc = new @arc_class(@, @digraph.next_arc_id(), val, next_vertex)
+      @_arcs.push(arc)
+      arc
+
+    arcs: ->
+      @_arcs
+
+    find_arc: (val) ->
+      for arc in @_arcs
+        return arc if arc.value == val
+
+
+  class @Arc
+    constructor: (@vertex, @id, @value, @next_vertex) ->
+      @next_vertex ||= null
+
+    test: (value) ->
+      @value == value || @value == true
+
+    format_att: ->
+      "#{@vertex.id} #{@next_vertex.id} #{@formatValue(@value)}"
+
+    dotString: ->
+      edge = Graphviz.dotEdge(@vertex.id, @next_vertex.id)
+      attrs = Graphviz.dotAttrs({label: "#{@dot_label()}"})
+      output = "#{edge}#{attrs};\n"
+      if @next_vertex.value
+        node = Graphviz.dotNode(@next_vertex.id, {shape: "doublecircle"})
+        output += node
+
+      output
+
+    dot_label: ->
+      @formatValue(@value)
+
+    formatValue: (value) ->
+      if typeof(value) == "function"
+        "<lambda>"
+      else if value == true
+        return "<epsilon>"
+      else
+        value
+
   constructor: ->
-    super(State, Arc)
+    super()
     @final_states = {}
 
   finalize: (state, value) ->
@@ -225,55 +277,55 @@ class MatchTracker
   track: (state, val) ->
     new MatchTracker(@, state, val)
 
-class State
-  constructor: (@digraph, @value) ->
-    @arc_class = @digraph.arc_class
-    @id = @digraph.next_vertex_id()
-    @_arcs = []
+#class State
+  #constructor: (@digraph, @value) ->
+    #@arc_class = @digraph.arc_class
+    #@id = @digraph.next_vertex_id()
+    #@_arcs = []
 
-  connect: (val, next_vertex) ->
-    arc = new @arc_class(@, @digraph.next_arc_id(), val, next_vertex)
-    @_arcs.push(arc)
-    arc
+  #connect: (val, next_vertex) ->
+    #arc = new @arc_class(@, @digraph.next_arc_id(), val, next_vertex)
+    #@_arcs.push(arc)
+    #arc
 
-  arcs: ->
-    @_arcs
+  #arcs: ->
+    #@_arcs
 
-  find_arc: (val) ->
-    for arc in @_arcs
-      return arc if arc.value == val
+  #find_arc: (val) ->
+    #for arc in @_arcs
+      #return arc if arc.value == val
 
 
-class Arc
-  constructor: (@vertex, @id, @value, @next_vertex) ->
-    @next_vertex ||= null
+#class Arc
+  #constructor: (@vertex, @id, @value, @next_vertex) ->
+    #@next_vertex ||= null
 
-  test: (value) ->
-    @value == value || @value == true
+  #test: (value) ->
+    #@value == value || @value == true
 
-  format_att: ->
-    "#{@vertex.id} #{@next_vertex.id} #{@formatValue(@value)}"
+  #format_att: ->
+    #"#{@vertex.id} #{@next_vertex.id} #{@formatValue(@value)}"
 
-  dotString: ->
-    edge = Graphviz.dotEdge(@vertex.id, @next_vertex.id)
-    attrs = Graphviz.dotAttrs({label: "#{@dot_label()}"})
-    output = "#{edge}#{attrs};\n"
-    if @next_vertex.value
-      node = Graphviz.dotNode(@next_vertex.id, {shape: "doublecircle"})
-      output += node
+  #dotString: ->
+    #edge = Graphviz.dotEdge(@vertex.id, @next_vertex.id)
+    #attrs = Graphviz.dotAttrs({label: "#{@dot_label()}"})
+    #output = "#{edge}#{attrs};\n"
+    #if @next_vertex.value
+      #node = Graphviz.dotNode(@next_vertex.id, {shape: "doublecircle"})
+      #output += node
 
-    output
+    #output
 
-  dot_label: ->
-    @formatValue(@value)
+  #dot_label: ->
+    #@formatValue(@value)
 
-  formatValue: (value) ->
-    if typeof(value) == "function"
-      "<lambda>"
-    else if value == true
-      return "<epsilon>"
-    else
-      value
+  #formatValue: (value) ->
+    #if typeof(value) == "function"
+      #"<lambda>"
+    #else if value == true
+      #return "<epsilon>"
+    #else
+      #value
 
 
 
