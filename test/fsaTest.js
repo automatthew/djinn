@@ -12,6 +12,7 @@ var fs = require("fs");
 
 var fsa = new FSA();
 fsa.add_path(["m", "a", "t", "t", "h", "e", "w"])
+fsa.add_path(["m", "a", "t", "t", true, "e", "w"])
 fsa.add_path(["m", "a", "t", "t"], 42);
 var state_list = fsa.add_path("margin".split(""))
 state_list[2].connect("t", state_list[1]);
@@ -31,21 +32,20 @@ fsa.graph("fsa.dot");
 //fsa.print_att();
 
 var testy = function (x) {
-  assert.deepEqual(x.accept_sequence("matt").path, "matt".split(""));
-  // Test final state value.
-  assert.deepEqual(x.accept_sequence("matt").finalValue, 42);
-  assert.deepEqual(x.accept_sequence("matthew").path, "matthew".split(""));
-  assert.deepEqual(x.accept_sequence("matargin").path, "matargin".split(""));
-  assert.deepEqual(x.accept_sequence("mat"), false);
-  assert.deepEqual(x.accept_sequence("smatty"), false);
-  assert.deepEqual(x.accept_sequence("tim").path, "tim".split(""));
-  assert.deepEqual(x.accept_sequence("dad").path, "dad".split(""));
-  assert.deepEqual(x.accept_sequence("daddyo"), false);
+  assert(x.accept_sequence("matt"));
+  assert(x.accept_sequence("matthew"));
+  assert(x.accept_sequence("matargin"));
+  assert(x.accept_sequence("tim"));
+  assert(x.accept_sequence("dad"));
+  assert(x.accept_sequence("fan"));
 
-  assert.deepEqual(x.accept_sequence("fan").path, "fan".split(""));
-  assert.deepEqual(x.accept_sequence("fat"), false);
-  assert.deepEqual(x.accept_sequence("fun").path, "fun".split(""));
-  //assert.deepEqual(x.accept_sequence("ryan").path, "ryan".split(""));
+  assert(!x.accept_sequence("mat"));
+  assert(!x.accept_sequence("smatty"));
+  assert(!x.accept_sequence("daddyo"));
+  assert(!x.accept_sequence("fat"));
+
+  assert.equal(x.match_sequence("matt").finalValue, 42);
+  assert.deepEqual(x.match_sequence("tim").path, ["t", true, "m"]);
 }
 
 testy(fsa);

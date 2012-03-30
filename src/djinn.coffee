@@ -153,11 +153,10 @@ class FSA extends Digraph
     @traverse (arc) ->
       if arc.next_vertex.finalValue
         final_states.push(arc.next_vertex)
-      output.push(arc.print())
+      output.push(arc.format_att())
     for vertex in final_states
       output.push(vertex.id)
     output
-
 
   dump: ->
     final_states = []
@@ -178,9 +177,16 @@ class FSA extends Digraph
     @
 
   accept_sequence: (sequence) ->
+    for stage in @try_sequence(sequence)
+      return true if stage.state.finalValue
+
+  match_sequence: (sequence) ->
+    list = @try_sequence(sequence)
+    @compile_matches(list)
+
+  try_sequence: (sequence) ->
     state = @source
-    tracker = new PathTracker()
-    current = [{state: state, tracker: tracker}]
+    current = [{state: state, tracker: new MatchTracker()}]
     sequence_length = sequence.length - 1
     for i in [0..sequence_length]
       val = sequence[i]
@@ -189,33 +195,34 @@ class FSA extends Digraph
         next = next.concat(stage.state.test(val, stage.tracker))
 
       if i == sequence_length
-        return matched_path(next, val)
+        return next
       else if next.length == 0
         return false
       else
         current = next
 
+  compile_matches: (next, val) ->
+    match = false
+    matches = []
+    for stage in next
+      state = stage.state
+      if state.finalValue
+        tip = stage.tracker
+        path = [tip.val]
+        # backtrack up the tree to find the path that matched
+        while (tip = tip.parent)
+          path.unshift(tip.val) if tip.val
+        match = { path: path, finalValue: state.finalValue }
+        matches.push(match)
+    matches[0] || false
 
-# TODO: we return either false or an object.  I don't like this.
-matched_path = (list, val) ->
-  match = false
-  for stage in list
-    state = stage.state
-    if state && state.finalValue
-      tip = stage.tracker
-      path = [tip.val]
-      # backtrack up the tree to find the path that matched
-      while (tip = tip.parent)
-        path.unshift(tip.val) if tip.val
-      match = { path: path, finalValue: state.finalValue }
-  match
 
-class PathTracker
+class MatchTracker
 
   constructor: (@parent, @val) ->
 
   next: (val) ->
-    new PathTracker(@, val)
+    new MatchTracker(@, val)
 
 class State
   constructor: (@digraph, @finalValue) ->
@@ -237,7 +244,7 @@ class State
     for arc in @arcs when arc.test(val)
       stages.push
         state: arc.next_vertex
-        tracker: tracker.next(val)
+        tracker: tracker.next(arc.value)
     stages
 
 
@@ -245,23 +252,24 @@ class Arc
   constructor: (@vertex, @id, @value, @next_vertex) ->
     @next_vertex ||= null
 
-  # It would be more fun if this were derived from the FSA somehow
   test: (value) ->
     @value == value || @value == true
 
-  print: ->
+  format_att: ->
     "#{@vertex.id} #{@next_vertex.id} #{@formatValue(@value)}"
 
   dotString: ->
-    v = @formatValue(@value)
     edge = Graphviz.dotEdge(@vertex.id, @next_vertex.id)
-    attrs = Graphviz.dotAttrs({label: "#{v}"})
+    attrs = Graphviz.dotAttrs({label: "#{@dot_label()}"})
     output = "#{edge}#{attrs};\n"
     if @next_vertex.finalValue
       node = Graphviz.dotNode(@next_vertex.id, {shape: "doublecircle"})
       output += node
 
     output
+
+  dot_label: ->
+    @formatValue(@value)
 
   formatValue: (value) ->
     if typeof(value) == "function"
