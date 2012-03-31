@@ -94,25 +94,31 @@ class Digraph
     vertex_list.push(last_vertex)
     vertex_list
 
-  class IntersectionHelper
-    constructor: (graph1, graph2, intersection) ->
+  class @IntersectionHelper
+    constructor: (graph1, graph2, @intersection) ->
       @unvisited = {}
-      @product_vertexes = {}
+      @product_vertices = {}
       root_key = @vkey(graph1.source, graph2.source)
       @unvisited[root_key] = [graph1.source, graph2.source]
-      @product_vertexes[root_key] = intersection.source
+      @product_vertices[root_key] = @intersection.source
 
     vkey: (v1, v2) ->
       "#{v1.id},#{v2.id}"
 
     product_vertex: (v1, v2) ->
       key = @vkey(v1, v2)
-      @product_vertexes[key]
+      @product_vertices[key]
 
-    add_unvisited: (v1, v2, v3) ->
+    product_next: (v1, v2) ->
+      unless (result = @product_vertex(v1, v2))
+        result = @intersection.create_vertex()
+        @add_unvisited(v1, v2, result)
+      result
+
+    add_unvisited: (v1, v2, product_vertex) ->
       key = @vkey(v1, v2)
       @unvisited[key] = [v1, v2]
-      @product_vertexes[key] = v3
+      @product_vertices[key] = product_vertex
 
     get_next_vertices: ->
       keys = Object.keys(@unvisited)
@@ -122,14 +128,14 @@ class Digraph
         key = keys[0]
         [v1, v2] = @unvisited[key]
         delete @unvisited[key]
-        [v1, v2, @product_vertexes[key]]
+        [v1, v2, @product_vertices[key]]
 
 
   # return a new digraph that is the intersection of the two graphs.  
   intersect: (other) ->
     digraph = @
     product = new @constructor()
-    helper = new IntersectionHelper(digraph, other, product)
+    helper = new @constructor.IntersectionHelper(digraph, other, product)
 
     while (next_vertices = helper.get_next_vertices())
       [this_vertex, other_vertex, product_vertex] = next_vertices
@@ -143,9 +149,7 @@ class Digraph
 
           # if the new graph does not already have the intersection state,
           # create an intersection state and index it
-          unless (product_next = helper.product_vertex(this_next, other_next))
-            product_next = product.create_vertex()
-            helper.add_unvisited(this_next, other_next, product_next)
+          product_next = helper.product_next(this_next, other_next)
           product.add_arc(product_vertex, product_next, this_arc.value)
     product
 
