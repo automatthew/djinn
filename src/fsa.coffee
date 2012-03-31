@@ -1,23 +1,16 @@
+Graphviz = require("./graphviz")
 Digraph = require("./digraph")
 
 class SequenceAcceptor extends Digraph
 
   class @Arc extends Digraph.Arc
 
-    test: (value) ->
-      @value == value || @value == true
-
     # expected by Arc interface
     dot_label: ->
       @formatValue(@value)
 
     formatValue: (value) ->
-      if typeof(value) == "function"
-        "<lambda>"
-      else if value == true
-        return "<epsilon>"
-      else
-        value
+      value
 
     format_att: ->
       "#{@vertex.id} #{@next_vertex.id} #{@formatValue(@value)}"
@@ -33,8 +26,25 @@ class SequenceAcceptor extends Digraph
 
   add_path: (array, value, options={}) ->
     vertices = super(array, options)
-    @finalize(vertices[vertices.length-1], value)
+    if !options.to || value
+      @finalize(vertices[vertices.length-1], value)
     vertices
+
+  intersect_vertices: (v1, v2) ->
+    v = @create_vertex()
+    @finalize(v) if v1.value && v2.value
+    v
+
+  format_graph: ->
+    string = Graphviz.digraph_preamble("Djinn")
+    @traverse (arc) -> string += arc.dotString()
+    string += Graphviz.dotNode(@source.id, {style: "bold"})
+    for id, vertex of @final_states
+      node = Graphviz.dotNode(id, {shape: "doublecircle"})
+      string += node
+
+    string += "}\n"
+    string
 
   print_att: ->
     output = @format_att()
@@ -91,9 +101,10 @@ class SequenceAcceptor extends Digraph
     for i in [0..sequence_length]
       val = sequence[i]
       next = []
-      for tracker in current
-        for arc in tracker.state.arcs() when arc.test(val)
-          next.push(tracker.track(arc.next_vertex, arc.value))
+      while (tracker = current.shift())
+        for arc in tracker.state.arcs()
+          if arc.value == val
+            next.push(tracker.track(arc.next_vertex, arc.value))
 
       if i == sequence_length
         return next

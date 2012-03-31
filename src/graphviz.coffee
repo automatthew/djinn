@@ -6,6 +6,8 @@ Graphviz =
     """
     digraph #{name} {\n
     rankdir=LR;\n
+    node [shape=circle,fontsize=10]
+    edge [fontsize=16]
     """
   
   dotEdge: (from, to) ->

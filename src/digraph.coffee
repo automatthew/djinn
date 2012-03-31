@@ -101,16 +101,6 @@ class Digraph
     vkey: (v1, v2) ->
       "#{v1.id},#{v2.id}"
 
-    product_vertex: (v1, v2) ->
-      key = @vkey(v1, v2)
-      unless (vertex = @product_vertices[key])
-        # Implement sink/final checking for FSMs by
-        # overriding this method and messing with the
-        # vertex we create.
-        vertex = @intersection.create_vertex()
-        @add_unvisited(v1, v2, vertex)
-      vertex
-
     add_unvisited: (v1, v2, product_vertex) ->
       key = @vkey(v1, v2)
       @unvisited[key] = [v1, v2]
@@ -128,7 +118,7 @@ class Digraph
 
     # this only works if arc equivalence is assumed to mean
     # that the arcs have the same @value
-    intersecting_arcs: (v1, v2, callback) ->
+    intersect_arcs: (v1, v2, callback) ->
       vals = {}
       for arc in v1.arcs()
         vals[arc.value] = arc
@@ -136,6 +126,19 @@ class Digraph
         if (this_arc = vals[other_arc.value])
           callback(this_arc, other_arc)
 
+    product_vertex: (v1, v2) ->
+      key = @vkey(v1, v2)
+      unless (vertex = @product_vertices[key])
+        # Implement sink/final checking for FSMs by
+        # overriding this method and messing with the
+        # vertex we create.
+        vertex = @intersection.intersect_vertices(v1, v2)
+        @add_unvisited(v1, v2, vertex)
+      vertex
+
+
+  intersect_vertices: (v1, v2) ->
+    @create_vertex()
 
 
   # return a new digraph that is the intersection of the two graphs.  
@@ -150,7 +153,7 @@ class Digraph
 
       # for the two current vertices, iterate over the arcs with same values.
       # TODO: check the arc intersection algorithm for stupids.
-      helper.intersecting_arcs this_vertex, other_vertex, (this_arc, other_arc) ->
+      helper.intersect_arcs this_vertex, other_vertex, (this_arc, other_arc) ->
         this_next = this_arc.next_vertex
         other_next = other_arc.next_vertex
 
@@ -182,14 +185,20 @@ class Digraph
 
   write_graph: (filename) ->
     fs = require("fs")
-    string = Graphviz.digraph_preamble("Djinn")
-
-    @traverse (arc) -> string += arc.dotString()
-
-    string += "}\n"
+    string = @format_graph()
 
     if filename
       fs.writeFileSync(filename, string)
+    string
+
+  format_graph: ->
+    string = Graphviz.digraph_preamble("Djinn")
+    @traverse (arc) -> string += arc.dotString()
+    #for vertex in @final_states
+      #node = Graphviz.dotNode(vertex.id, {shape: "doublecircle"}
+      #string += node
+
+    string += "}\n"
     string
 
   dump: (callback) ->
