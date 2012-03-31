@@ -27,32 +27,32 @@ fsa.add_path("ar".split(''), null, {from: state_list[1], to: state_list[2]})
 fsa.add_path(["f", true, "n"])
 //fsa.add_path([function (v) {return true}, "y", "a", "n"])
 
-fsa.graph("fsa.dot");
+fsa.write_graph("fsa.dot");
 
 //fsa.print_att();
 
 var testy = function (x) {
-  assert(x.accept_sequence("matt"));
-  assert(x.accept_sequence("matthew"));
-  assert(x.accept_sequence("matargin"));
-  assert(x.accept_sequence("tim"));
-  assert(x.accept_sequence("dad"));
-  assert(x.accept_sequence("fan"));
+  assert(x.accept("matt"));
+  assert(x.accept("matthew"));
+  assert(x.accept("matargin"));
+  assert(x.accept("tim"));
+  assert(x.accept("dad"));
+  assert(x.accept("fan"));
 
-  assert(!x.accept_sequence("mat"));
-  assert(!x.accept_sequence("smatty"));
-  assert(!x.accept_sequence("daddyo"));
-  assert(!x.accept_sequence("fat"));
+  assert(!x.accept("mat"));
+  assert(!x.accept("smatty"));
+  assert(!x.accept("daddyo"));
+  assert(!x.accept("fat"));
 
-  assert.deepEqual(x.match_sequence("matt").final_state.value, 42);
-  assert.deepEqual(x.match_sequence("tim").path, ["t", true, "m"]);
+  assert.deepEqual(x.match("matt").final_state.value, 42);
+  assert.deepEqual(x.match("tim").path, ["t", true, "m"]);
 }
 
 testy(fsa);
 
 var dump = fsa.dump();
 var restored = FSA.load(dump);
-//restored.graph("restored.dot");
+//restored.write_graph("restored.dot");
 
 testy(restored);
 

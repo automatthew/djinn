@@ -2,6 +2,12 @@
 # Graphviz formatting helpers
 
 Graphviz =
+  digraph_preamble: (name) ->
+    """
+    digraph #{name} {\n
+    rankdir=LR;\n
+    """
+  
   dotEdge: (from, to) ->
     [from, to].join(" -> ")
 
