@@ -76,7 +76,12 @@ class SequenceAcceptor extends Digraph
 
   match: (sequence) ->
     list = @try_sequence(sequence)
-    @compile_matches(list)
+    matches = @compile_matches(list)
+    matches[0] || false
+
+  matches: (sequence) ->
+    list = @try_sequence(sequence)
+    matches = @compile_matches(list)
 
   try_sequence: (sequence) ->
     state = @source
@@ -111,7 +116,7 @@ class SequenceAcceptor extends Digraph
           path.unshift(tracker.val) if tracker.val
         match = { path: path, final_state: state }
         matches.push(match)
-    matches[0] || false
+    matches
 
 
 class MatchTracker
