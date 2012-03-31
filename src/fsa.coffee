@@ -4,7 +4,7 @@ class SequenceAcceptor extends Digraph
 
   class @Arc extends Digraph.Arc
 
-    equiv: (value) ->
+    test: (value) ->
       @value == value || @value == true
 
     # expected by Arc interface
@@ -92,7 +92,7 @@ class SequenceAcceptor extends Digraph
       val = sequence[i]
       next = []
       for tracker in current
-        for arc in tracker.state.arcs() when arc.equiv(val)
+        for arc in tracker.state.arcs() when arc.test(val)
           next.push(tracker.track(arc.next_vertex, arc.value))
 
       if i == sequence_length
