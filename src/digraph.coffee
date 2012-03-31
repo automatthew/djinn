@@ -94,48 +94,60 @@ class Digraph
     vertex_list.push(last_vertex)
     vertex_list
 
+  class IntersectionHelper
+    constructor: (graph1, graph2, intersection) ->
+      @unvisited = {}
+      @product_vertexes = {}
+      root_key = @vkey(graph1.source, graph2.source)
+      @unvisited[root_key] = [graph1.source, graph2.source]
+      @product_vertexes[root_key] = intersection.source
+
+    vkey: (v1, v2) ->
+      "#{v1.id},#{v2.id}"
+
+    product_vertex: (v1, v2) ->
+      key = @vkey(v1, v2)
+      @product_vertexes[key]
+
+    add_unvisited: (v1, v2, v3) ->
+      key = @vkey(v1, v2)
+      @unvisited[key] = [v1, v2]
+      @product_vertexes[key] = v3
+
+    get_next_vertices: ->
+      keys = Object.keys(@unvisited)
+      if keys.length == 0
+        null
+      else
+        key = keys[0]
+        [v1, v2] = @unvisited[key]
+        delete @unvisited[key]
+        [v1, v2, @product_vertexes[key]]
+
+
   # return a new digraph that is the intersection of the two graphs.  
   intersect: (other) ->
     digraph = @
-    intersection = new @constructor()
+    product = new @constructor()
+    helper = new IntersectionHelper(digraph, other, product)
 
-    vkey = (v1, v2) ->
-      "#{v1.id},#{v2.id}"
-    object_pop = (obj) ->
-      key = Object.keys(obj)[0]
-      val = obj[key]
-      delete obj[key]
-      [key, val]
+    while (next_vertices = helper.get_next_vertices())
+      [this_vertex, other_vertex, product_vertex] = next_vertices
 
-    unvisited_vertices = {}
-    root_key = vkey(@source, other.source)
-    unvisited_vertices[root_key] = [@source, other.source]
-    vertex_mapper = {}
-    vertex_mapper[root_key] = intersection.source
-
-    while Object.keys(unvisited_vertices).length >0
-      # "pop" a state from unvisited_vertices
-      [key, [this_vertex, other_vertex]] = object_pop(unvisited_vertices)
-      out_current = vertex_mapper[key]
-
-      # for the two current states, iterate over the 
+      # for the two current vertices, iterate over the 
       # transitions with same values
       for this_arc in this_vertex.arcs()
         for other_arc in other_vertex.arcs() when this_arc.test(other_arc.value)
           this_next = this_arc.next_vertex
           other_next = other_arc.next_vertex
 
-          next_key = vkey(this_next, other_next)
-          # if the new graph does not already have the intersection state...
-          out_next = vertex_mapper[next_key]
-          if !out_next
-            # create an intersection state and index it
-            out_next = intersection.create_vertex()
-            vertex_mapper[next_key] = out_next
-            unvisited_vertices[next_key] = [this_next, other_next]
-          # add the transition
-          intersection.add_arc(out_current, out_next, this_arc.value)
-    intersection
+          # if the new graph does not already have the intersection state,
+          # create an intersection state and index it
+          unless (product_next = helper.product_vertex(this_next, other_next))
+            product_next = product.create_vertex()
+            helper.add_unvisited(this_next, other_next, product_next)
+          product.add_arc(product_vertex, product_next, this_arc.value)
+    product
 
 
 
