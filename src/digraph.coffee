@@ -19,10 +19,6 @@ class Digraph
       for arc in @_arcs
         return arc if arc.test(val)
 
-    intersect: (other) ->
-      # warning: Cartesian product
-      arc for arc in @arcs() when other.find_arc(arc.value)
-
   class @Arc
     constructor: (@vertex, @id, @value, @next_vertex) ->
 
@@ -107,13 +103,13 @@ class Digraph
 
     product_vertex: (v1, v2) ->
       key = @vkey(v1, v2)
-      @product_vertices[key]
-
-    product_next: (v1, v2) ->
-      unless (result = @product_vertex(v1, v2))
-        result = @intersection.create_vertex()
-        @add_unvisited(v1, v2, result)
-      result
+      unless (vertex = @product_vertices[key])
+        # Implement sink/final checking for FSMs by
+        # overriding this method and messing with the
+        # vertex we create.
+        vertex = @intersection.create_vertex()
+        @add_unvisited(v1, v2, vertex)
+      vertex
 
     add_unvisited: (v1, v2, product_vertex) ->
       key = @vkey(v1, v2)
@@ -130,8 +126,20 @@ class Digraph
         delete @unvisited[key]
         [v1, v2, @product_vertices[key]]
 
+    # this only works if arc equivalence is assumed to mean
+    # that the arcs have the same @value
+    intersecting_arcs: (v1, v2, callback) ->
+      vals = {}
+      for arc in v1.arcs()
+        vals[arc.value] = arc
+      for other_arc in v2.arcs()
+        if (this_arc = vals[other_arc.value])
+          callback(this_arc, other_arc)
+
+
 
   # return a new digraph that is the intersection of the two graphs.  
+  # NOTE: FSM subclasses will end up with sinks that aren't final.
   intersect: (other) ->
     digraph = @
     product = new @constructor()
@@ -140,21 +148,24 @@ class Digraph
     while (next_vertices = helper.get_next_vertices())
       [this_vertex, other_vertex, product_vertex] = next_vertices
 
-      # for the two current vertices, iterate over the 
-      # transitions with same values
-      for this_arc in this_vertex.arcs()
-        for other_arc in other_vertex.arcs() when this_arc.test(other_arc.value)
-          this_next = this_arc.next_vertex
-          other_next = other_arc.next_vertex
+      # for the two current vertices, iterate over the arcs with same values.
+      # TODO: check the arc intersection algorithm for stupids.
+      helper.intersecting_arcs this_vertex, other_vertex, (this_arc, other_arc) ->
+        this_next = this_arc.next_vertex
+        other_next = other_arc.next_vertex
 
-          # if the new graph does not already have the intersection state,
-          # create an intersection state and index it
-          product_next = helper.product_next(this_next, other_next)
-          product.add_arc(product_vertex, product_next, this_arc.value)
+        # if the new graph does not already have the intersection state,
+        # create an intersection state and index it
+        product_next = helper.product_vertex(this_next, other_next)
+        product.add_arc(product_vertex, product_next, this_arc.value)
     product
 
 
-
+  traverse: (callback) ->
+    _traverse = @stepper()
+    next = _traverse([@source], callback)
+    while next.length > 0
+      next = _traverse(next, callback)
 
   stepper: ->
     visited_arcs = {}
@@ -168,13 +179,6 @@ class Digraph
           callback(arc)
           next.push(arc.next_vertex)
       return next
-
-
-  traverse: (callback) ->
-    _traverse = @stepper()
-    next = _traverse([@source], callback)
-    while next.length > 0
-      next = _traverse(next, callback)
 
   write_graph: (filename) ->
     fs = require("fs")
