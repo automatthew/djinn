@@ -23,10 +23,9 @@ class Digraph
 
   class @Arc
     constructor: (@vertex, @id, @value, @next_vertex) ->
-      @next_vertex ||= null
 
     equiv: (value) ->
-      @value == value || @value == true
+      @value == value
 
     dotString: ->
       edge = Graphviz.dotEdge(@vertex.id, @next_vertex.id)
@@ -50,9 +49,9 @@ class Digraph
   next_arc_id: ->
     @arc_id_counter++
 
-  create_vertex: (opts) ->
-    opts ||= {}
-    new @constructor.Vertex(@next_vertex_id(), opts.value)
+  create_vertex: (id) ->
+    id ||= @next_vertex_id()
+    new @constructor.Vertex(id)
 
   add_arc: (vertex1, vertex2, value) ->
     arc = new @constructor.Arc(vertex1, @next_arc_id(), value, vertex2)
@@ -147,8 +146,8 @@ class Digraph
     tmpStates[digraph.source.id] = digraph.source
 
     for transition in transitions
-      tmpStates[transition.vertex] ||= digraph.create_vertex({id: transition.vertex})
-      tmpStates[transition.next] ||= digraph.create_vertex({id: transition.next})
+      tmpStates[transition.vertex] ||= digraph.create_vertex(transition.vertex)
+      tmpStates[transition.next] ||= digraph.create_vertex(transition.next)
       current = tmpStates[transition.vertex]
       next = tmpStates[transition.next]
       digraph.add_arc(current, next, transition.val)
@@ -165,6 +164,9 @@ class Digraph
 class FSA extends Digraph
 
   class @Arc extends Digraph.Arc
+
+    equiv: (value) ->
+      @value == value || @value == true
 
     # expected by Arc interface
     dot_label: ->
