@@ -6,6 +6,39 @@ Graphviz = require("./graphviz")
 
 class Digraph
 
+  class @Vertex
+    constructor: (@id) ->
+      @_arcs = []
+
+    add_arc: (arc) ->
+      @_arcs.push(arc)
+      arc
+
+    arcs: ->
+      @_arcs
+
+    find_arc: (val) ->
+      for arc in @_arcs
+        return arc if arc.value == val
+
+  class @Arc
+    constructor: (@vertex, @id, @value, @next_vertex) ->
+      @next_vertex ||= null
+
+    equiv: (value) ->
+      @value == value || @value == true
+
+    dotString: ->
+      edge = Graphviz.dotEdge(@vertex.id, @next_vertex.id)
+      attrs = Graphviz.dotAttrs({label: "#{@dot_label()}"})
+      output = "#{edge}#{attrs};\n"
+      if @next_vertex.value
+        node = Graphviz.dotNode(@next_vertex.id, {shape: "doublecircle"})
+        output += node
+
+      output
+
+
   constructor: () ->
     @vertex_id_counter = 0
     @arc_id_counter = 0
@@ -19,8 +52,11 @@ class Digraph
 
   create_vertex: (opts) ->
     opts ||= {}
-    id = opts.id || @next_vertex_id()
-    new @constructor.Vertex(@, opts.value)
+    new @constructor.Vertex(@next_vertex_id(), opts.value)
+
+  add_arc: (vertex1, vertex2, value) ->
+    arc = new @constructor.Arc(vertex1, @next_arc_id(), value, vertex2)
+    vertex1.add_arc(arc)
 
   add_path: (array, options={}) ->
     digraph = @
@@ -45,12 +81,12 @@ class Digraph
           vertex = arc.next_vertex
         else
           next_vertex = digraph.create_vertex()
-          vertex.connect(val, next_vertex)
+          digraph.add_arc(vertex, next_vertex, val)
           vertex = next_vertex
         vertex_list.push(vertex)
 
     last_value = values[values.length - 1]
-    vertex.connect(last_value, last_vertex)
+    digraph.add_arc(vertex, last_vertex, last_value)
     vertex_list.push(last_vertex)
     vertex_list
 
@@ -115,7 +151,7 @@ class Digraph
       tmpStates[transition.next] ||= digraph.create_vertex({id: transition.next})
       current = tmpStates[transition.vertex]
       next = tmpStates[transition.next]
-      current.connect(transition.val, next)
+      digraph.add_arc(current, next, transition.val)
       callback(transition) if transition_callback
     digraph.vertex_id_counter = dump.vertex_id_counter
     digraph.arc_id_counter = dump.arc_id_counter
@@ -128,47 +164,9 @@ class Digraph
 
 class FSA extends Digraph
 
+  class @Arc extends Digraph.Arc
 
-  # How do you extend? from superclass?
-  class @Vertex
-    constructor: (@digraph, @value) ->
-      @arc_class = @digraph.constructor.Arc
-      @id = @digraph.next_vertex_id()
-      @_arcs = []
-
-    connect: (val, next_vertex) ->
-      arc = new @arc_class(@, @digraph.next_arc_id(), val, next_vertex)
-      @_arcs.push(arc)
-      arc
-
-    arcs: ->
-      @_arcs
-
-    find_arc: (val) ->
-      for arc in @_arcs
-        return arc if arc.value == val
-
-
-  class @Arc
-    constructor: (@vertex, @id, @value, @next_vertex) ->
-      @next_vertex ||= null
-
-    test: (value) ->
-      @value == value || @value == true
-
-    format_att: ->
-      "#{@vertex.id} #{@next_vertex.id} #{@formatValue(@value)}"
-
-    dotString: ->
-      edge = Graphviz.dotEdge(@vertex.id, @next_vertex.id)
-      attrs = Graphviz.dotAttrs({label: "#{@dot_label()}"})
-      output = "#{edge}#{attrs};\n"
-      if @next_vertex.value
-        node = Graphviz.dotNode(@next_vertex.id, {shape: "doublecircle"})
-        output += node
-
-      output
-
+    # expected by Arc interface
     dot_label: ->
       @formatValue(@value)
 
@@ -179,6 +177,10 @@ class FSA extends Digraph
         return "<epsilon>"
       else
         value
+
+    format_att: ->
+      "#{@vertex.id} #{@next_vertex.id} #{@formatValue(@value)}"
+
 
   constructor: ->
     super()
@@ -244,7 +246,7 @@ class FSA extends Digraph
       val = sequence[i]
       next = []
       for tracker in current
-        for arc in tracker.state.arcs() when arc.test(val)
+        for arc in tracker.state.arcs() when arc.equiv(val)
           next.push(tracker.track(arc.next_vertex, arc.value))
 
       if i == sequence_length
@@ -276,57 +278,6 @@ class MatchTracker
 
   track: (state, val) ->
     new MatchTracker(@, state, val)
-
-#class State
-  #constructor: (@digraph, @value) ->
-    #@arc_class = @digraph.arc_class
-    #@id = @digraph.next_vertex_id()
-    #@_arcs = []
-
-  #connect: (val, next_vertex) ->
-    #arc = new @arc_class(@, @digraph.next_arc_id(), val, next_vertex)
-    #@_arcs.push(arc)
-    #arc
-
-  #arcs: ->
-    #@_arcs
-
-  #find_arc: (val) ->
-    #for arc in @_arcs
-      #return arc if arc.value == val
-
-
-#class Arc
-  #constructor: (@vertex, @id, @value, @next_vertex) ->
-    #@next_vertex ||= null
-
-  #test: (value) ->
-    #@value == value || @value == true
-
-  #format_att: ->
-    #"#{@vertex.id} #{@next_vertex.id} #{@formatValue(@value)}"
-
-  #dotString: ->
-    #edge = Graphviz.dotEdge(@vertex.id, @next_vertex.id)
-    #attrs = Graphviz.dotAttrs({label: "#{@dot_label()}"})
-    #output = "#{edge}#{attrs};\n"
-    #if @next_vertex.value
-      #node = Graphviz.dotNode(@next_vertex.id, {shape: "doublecircle"})
-      #output += node
-
-    #output
-
-  #dot_label: ->
-    #@formatValue(@value)
-
-  #formatValue: (value) ->
-    #if typeof(value) == "function"
-      #"<lambda>"
-    #else if value == true
-      #return "<epsilon>"
-    #else
-      #value
-
 
 
 

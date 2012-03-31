@@ -15,7 +15,7 @@ fsa.add_path(["m", "a", "t", "t", "h", "e", "w"])
 fsa.add_path(["m", "a", "t", "t", true, "e", "w"])
 fsa.add_path(["m", "a", "t", "t"], 42);
 var state_list = fsa.add_path("margin".split(""))
-state_list[2].connect("t", state_list[1]);
+fsa.add_arc(state_list[2], state_list[1], "t")
 fsa.add_path(["t", true, "m"])
 
 var state_list = fsa.add_path(["d", "o", "n"])
