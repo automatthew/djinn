@@ -54,9 +54,6 @@ var restored = FSA.load(dump);
 
 testy(restored);
 
-var str = fs.readFileSync("./test/curfsa.json");
-var restored = FSA.load(JSON.parse(str));
-//restored.graph("./test/curfsa.dot");
 
 //var connectives = new FSA()
 //var words = fs.readFileSync("/usr/share/dict/connectives");

@@ -15,7 +15,7 @@ class Digraph
     new @Vertex(@, id)
 
   add_arc: (vertex1, vertex2, value) ->
-    arc = new @Arc(vertex1, @next_arc_id(), value, vertex2)
+    arc = new @Arc(@, vertex1, value, vertex2)
     vertex1.add_arc(arc)
 
   add_path: (array, options={}) ->
@@ -154,46 +154,37 @@ class Digraph
   format_graph: ->
     string = Graphviz.digraph_preamble("Djinn")
     @traverse (arc) -> string += arc.dotString()
-    #for vertex in @final_states
-      #node = Graphviz.dotNode(vertex.id, {shape: "doublecircle"}
-      #string += node
-
     string += "}\n"
     string
 
   dump: (callback) ->
-    data = {transitions: []}
-    transitions = data.transitions
+    data = {arcs: []}
+    arcs = data.arcs
 
     @traverse (arc) ->
       callback(arc) if callback
-      transitions.push
-        vertex: arc.vertex.id
-        next: arc.next_vertex.id
+      arcs.push
+        vertex: arc.vertex_id()
+        next: arc.next_vertex_id()
         val: arc.value
-
-    data.vertex_id_counter = this.vertex_id_counter
-    data.arc_id_counter = this.arc_id_counter
     data
 
   @load: (args...) ->
     new @().load(args...)
 
-  load: (dump, transition_callback, states_callback) ->
+  load: (dump, arc_callback, states_callback) ->
     digraph = @
-    transitions = dump.transitions
+    arcs = dump.arcs
     tmpStates = {}
     tmpStates[digraph.source.id] = digraph.source
 
-    for transition in transitions
-      tmpStates[transition.vertex] ||= digraph.create_vertex(transition.vertex)
-      tmpStates[transition.next] ||= digraph.create_vertex(transition.next)
-      current = tmpStates[transition.vertex]
-      next = tmpStates[transition.next]
-      digraph.add_arc(current, next, transition.val)
-      callback(transition) if transition_callback
-    digraph.vertex_id_counter = dump.vertex_id_counter
-    digraph.arc_id_counter = dump.arc_id_counter
+    for arc in arcs
+      tmpStates[arc.vertex] ||= digraph.create_vertex(arc.vertex)
+      tmpStates[arc.next] ||= digraph.create_vertex(arc.next)
+      vertex1 = tmpStates[arc.vertex]
+      vertex2 = tmpStates[arc.next]
+      digraph.add_arc(vertex1, vertex2, arc.val)
+      callback(arc) if arc_callback
     states_callback(tmpStates) if states_callback
     @
 
