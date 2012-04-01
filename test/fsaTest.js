@@ -58,21 +58,21 @@ var str = fs.readFileSync("./test/curfsa.json");
 var restored = FSA.load(JSON.parse(str));
 //restored.graph("./test/curfsa.dot");
 
-var connectives = new FSA()
-var words = fs.readFileSync("/usr/share/dict/connectives");
-words.toString().split("\n").forEach(function (word) {
-  if (word) {
-    connectives.add_path(word);
-  }
-});
+//var connectives = new FSA()
+//var words = fs.readFileSync("/usr/share/dict/connectives");
+//words.toString().split("\n").forEach(function (word) {
+  //if (word) {
+    //connectives.add_path(word);
+  //}
+//});
 
-var all = new FSA()
-var words = fs.readFileSync("/usr/share/dict/words");
-words.toString().split("\n").forEach(function (word) {
-  if (word) {
-    all.add_path(word);
-  }
-});
+//var all = new FSA()
+//var words = fs.readFileSync("/usr/share/dict/words");
+//words.toString().split("\n").forEach(function (word) {
+  //if (word) {
+    //all.add_path(word);
+  //}
+//});
 
 
 //var inter = all.intersect(connectives);

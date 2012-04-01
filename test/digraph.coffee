@@ -19,9 +19,9 @@ verbs.add_path("make")
 verbs.add_path("sand")
 verbs.add_path("sell")
 
+#nouns.write_graph("nouns.dot")
+#verbs.write_graph("verbs.dot")
+
 inter = nouns.intersect(verbs)
 inter.write_graph("inter.dot")
-
-nouns.write_graph("nouns.dot")
-verbs.write_graph("verbs.dot")
 
