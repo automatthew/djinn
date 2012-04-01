@@ -1,61 +1,21 @@
 Graphviz = require("./graphviz")
 
 # Class for creating a directed graph with a global source.
-# Something like a tree that allows cycles.
+# You can't use this class directly, as it lacks nested
+# Vertex and Arc classes.  Extend it and define your own
+# support classes, a la NaiveDigraph.
 class Digraph
 
-  class @Vertex
-    constructor: (@id) ->
-      @_arcs = []
-
-    add_arc: (arc) ->
-      @_arcs.push(arc)
-      arc
-
-    arcs: ->
-      @_arcs
-
-    find_arc: (val) ->
-      for arc in @_arcs
-        return arc if arc.test(val)
-
-  class @Arc
-    constructor: (@vertex, @id, @value, @next_vertex) ->
-
-    test: (value) ->
-      @value == value
-
-    dotString: ->
-      edge = Graphviz.dotEdge(@vertex.id, @next_vertex.id)
-      attrs = Graphviz.dotAttrs({label: "#{@dot_label()}"})
-      output = "#{edge}#{attrs};\n"
-      #if @next_vertex.sink
-        #node = Graphviz.dotNode(@next_vertex.id, {shape: "doublecircle"})
-        #output += node
-
-      output
-
-     dot_label: ->
-       @value.toString()
-
-
   constructor: () ->
-    @vertex_id_counter = 0
-    @arc_id_counter = 0
+    @Vertex = @constructor.Vertex
+    @Arc = @constructor.Arc
     @source = @create_vertex()
 
-  next_vertex_id: ->
-    @vertex_id_counter++
-
-  next_arc_id: ->
-    @arc_id_counter++
-
-  create_vertex: (id) ->
-    id ||= @next_vertex_id()
-    new @constructor.Vertex(id)
+  create_vertex: (id=null) ->
+    new @Vertex(@, id)
 
   add_arc: (vertex1, vertex2, value) ->
-    arc = new @constructor.Arc(vertex1, @next_arc_id(), value, vertex2)
+    arc = new @Arc(vertex1, @next_arc_id(), value, vertex2)
     vertex1.add_arc(arc)
 
   add_path: (array, options={}) ->

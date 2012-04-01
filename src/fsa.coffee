@@ -1,5 +1,5 @@
 Graphviz = require("./graphviz")
-Digraph = require("./digraph")
+Digraph = require("./naive_digraph")
 
 class SequenceAcceptor extends Digraph
 

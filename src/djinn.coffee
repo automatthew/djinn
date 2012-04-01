@@ -4,6 +4,7 @@
 
 module.exports =
   "Digraph": require("./digraph")
+  "NaiveDigraph": require("./naive_digraph")
   "FSA": require("./fsa")
 
 
