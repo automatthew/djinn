@@ -89,15 +89,15 @@ class Digraph
     product_vertex: (v1, v2) ->
       key = @vkey(v1, v2)
       unless (vertex = @product_vertices[key])
-        # Implement sink/final checking for FSMs by
-        # overriding this method and messing with the
-        # vertex we create.
         vertex = @intersection.intersect_vertices(v1, v2)
         @add_unvisited(v1, v2, vertex)
       vertex
 
 
   intersect_vertices: (v1, v2) ->
+    # Implement sink/final checking for FSMs by
+    # overriding this method and messing with the
+    # vertex we create.
     @create_vertex()
 
 
