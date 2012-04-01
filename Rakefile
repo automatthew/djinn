@@ -17,3 +17,11 @@ end
 task "test:digraph:dot" => "test:digraph" do
   sh "dot -Tpng inter.dot > inter.png"
 end
+
+task "dot" do
+  files = FileList["**/*.dot"]
+  files.each do |file|
+    outfile = file.sub(/\.dot$/, ".png")
+    sh "dot -Tpng #{file} > #{outfile}"
+  end
+end
