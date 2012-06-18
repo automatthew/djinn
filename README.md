@@ -1,6 +1,22 @@
 # Djinn:  Finite State Automata in Javascript
 
-## Notes from an email:
+## Notes from various emails:
+
+
+FSMs are effectively directed graphs (with a global source), so I
+extracted everything possible into a directed graph class.
+
+https://github.com/automatthew/djinn/blob/master/src/digraph.coffee
+
+The FSA class extends Digraph.  It has `accept`, (first) `match`, and
+`matches` methods for testing input strings or arrays.  It's still
+suffering from cruft, feature creep, and indecision.  The test script
+shows you pretty much all the primitives it offers.
+
+https://github.com/automatthew/djinn/blob/master/src/fsa.coffee
+https://github.com/automatthew/djinn/blob/master/test/fsaTest.js
+
+---
 
 I had graphs on the brain this weekend, so I refurbished Djinn.
 
