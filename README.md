@@ -1,5 +1,10 @@
 # Djinn:  Finite State Automata in Javascript
 
+Inspirations:
+
+* [OpenFST](http://www.openfst.org/twiki/bin/view/FST/WebHome)
+* [Ken Thompson's NFA algorithm](http://swtch.com/~rsc/regexp/regexp1.html)
+
 ## Notes from various emails:
 
 
