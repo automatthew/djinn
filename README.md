@@ -13,7 +13,7 @@ extracted everything possible into a directed graph class.
 
 https://github.com/automatthew/djinn/blob/master/src/digraph.coffee
 
-The FSA class extends Digraph.  It has `accept`, (first) `match`, and
+The FSA class extends Digraph.  It has `accept`, `match`, and
 `matches` methods for testing input strings or arrays.  It's still
 suffering from cruft, feature creep, and indecision.  The test script
 shows you pretty much all the primitives it offers.
@@ -25,7 +25,7 @@ https://github.com/automatthew/djinn/blob/master/test/fsaTest.js
 
 I had graphs on the brain this weekend, so I refurbished Djinn.
 
-There's now a base directed-graph class that requires you to implement
+There's now a base Digraph class that requires you to implement
 your own Vertex and Arc (a.k.a. node and edge) classes.  So far I supply
 a NaiveDigraph subclass that's based on mindless OO patterns and a
 SequenceAcceptor (currently using NaiveDigraph, but could use any other
