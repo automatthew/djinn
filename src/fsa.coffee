@@ -30,6 +30,8 @@ class SequenceAcceptor extends Digraph
       @finalize(vertices[vertices.length-1], value)
     vertices
 
+  # An intersected vertex is only final if the two inputs
+  # were final.
   intersect_vertices: (v1, v2) ->
     v = @create_vertex()
     @finalize(v) if v1.value && v2.value

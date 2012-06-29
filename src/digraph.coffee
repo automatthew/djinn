@@ -1,21 +1,16 @@
 Graphviz = require("./graphviz")
 
 # Class for creating a directed graph with a global source.
-# You can't use this class directly, as it lacks nested
+# You can't use this class directly, as it lacks the nested
 # Vertex and Arc classes.  Extend it and define your own
 # support classes, a la NaiveDigraph.
 class Digraph
 
   constructor: () ->
-    @Vertex = @constructor.Vertex
-    @Arc = @constructor.Arc
     @source = @create_vertex()
 
-  create_vertex: (id=null) ->
-    new @Vertex(@, id)
-
   add_arc: (vertex1, vertex2, value) ->
-    arc = new @Arc(@, vertex1, value, vertex2)
+    arc = @create_arc(vertex1, vertex2, value)
     vertex1.add_arc(arc)
 
   add_path: (array, options={}) ->
@@ -95,9 +90,8 @@ class Digraph
 
 
   intersect_vertices: (v1, v2) ->
-    # Implement sink/final checking for FSMs by
-    # overriding this method and messing with the
-    # vertex we create.
+    # FSMs will need to implement sink/final checking by overriding
+    # this method and messing with the vertex we create.
     @create_vertex()
 
 

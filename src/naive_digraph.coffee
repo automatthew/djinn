@@ -3,8 +3,6 @@ Graphviz = require("./graphviz")
 
 class NaiveDigraph extends Digraph
 
-  # extensions
-
   constructor: () ->
     super()
     @vertex_id_counter = 0
@@ -22,18 +20,23 @@ class NaiveDigraph extends Digraph
     @arc_id_counter = dump.arc_id_counter
     @
 
-  # customization
-
   next_vertex_id: ->
     @vertex_id_counter++
 
   next_arc_id: ->
     @arc_id_counter++
 
+  create_vertex: (id=null) ->
+    id ||= @next_vertex_id()
+    new @constructor.Vertex(@, id)
+
+  create_arc: (vertex1, vertex2, value, id=null) ->
+    id ||= @next_arc_id()
+    new @constructor.Arc(@, vertex1, vertex2, value, id)
+
 
   class @Vertex
-    constructor: (@digraph, id) ->
-      @id = id || @digraph.next_vertex_id()
+    constructor: (@digraph, @id) ->
       @_arcs = []
 
     add_arc: (arc) ->
@@ -48,8 +51,7 @@ class NaiveDigraph extends Digraph
         return arc if arc.test(val)
 
   class @Arc
-    constructor: (@digraph, @vertex, @value, @next_vertex) ->
-      @id = @digraph.next_arc_id()
+    constructor: (@digraph, @vertex, @next_vertex, @value, @id) ->
 
     vertex_id: ->
       @vertex.id
