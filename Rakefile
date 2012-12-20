@@ -1,16 +1,19 @@
-$COFFEE = "node_modules/coffee-script/bin/coffee"
+require "starter/tasks/npm"
+require "starter/tasks/git"
+require "starter/tasks/github"
 
 task "build" do
-	sh "#{$COFFEE} --compile --bare --output build/ src/"
+	sh "coffee --compile --bare --output build/ src/"
 end
 
+desc "run tests"
 task "test" => %w[test:fsa test:digraph]
 
-task "test:fsa" => "build" do
-  sh "node test/fsaTest.js"
+task "test:fsa" do
+  sh "coffee test/crappy_test.coffee"
 end
 
-task "test:digraph" => "build" do
+task "test:digraph" do
   sh "coffee test/digraph.coffee"
 end
 

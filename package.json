@@ -15,7 +15,7 @@
     "colors": "0.5.1"
   },
   "devDependencies": {
-    "vows": "0.6.x"
+    "testify": "0.1.x"
   },
   "engine": "node >= 0.6"
 }

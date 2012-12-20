@@ -1,6 +1,6 @@
 
-assert = require('assert')
-Digraph = require('../build/djinn').NaiveDigraph
+assert = require("assert")
+Digraph = require("../src/djinn").NaiveDigraph
 
 
 nouns = new Digraph()
