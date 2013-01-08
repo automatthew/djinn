@@ -8,8 +8,8 @@ Testify.test "Djinn FSA", (context) ->
 
   fsa = new FSA()
 
-  fsa.add_path(["m", "a", "t", "t", "h", "e", "w"])
-  fsa.add_path(["m", "a", "t", "t"], 42)
+  fsa.add_path("matthew")
+  fsa.add_path("matt", 42)
   state_list = fsa.add_path("margin")
   fsa.add_arc(state_list[2], state_list[1], "z")
 
@@ -20,18 +20,17 @@ Testify.test "Djinn FSA", (context) ->
   fsa.add_path("dad", null, {from: first, to: last})
   fsa.add_path("ar".split(""), null, {from: state_list[1], to: state_list[2]})
 
-  fsa.add_path(["1", "2", true, "3", "4"], "monkey")
 
   tests = (context, x) ->
-    context.test "accepts the expected strings", ->
-      assert(x.accept("matt"))
-      assert(x.accept("matthew"))
-      assert(x.accept("mazatthew"))
-      assert(x.accept("mazazatthew"))
-      assert(x.accept("mazazazatthew"))
-      assert(x.accept("dad"))
-      assert(x.accept("12x34"))
-      assert(x.accept("12y34"))
+    context.test "accepts the expected strings", (context) ->
+      context.test "exact match", ->
+        assert(x.accept("matt"))
+        assert(x.accept("matthew"))
+        assert(x.accept("dad"))
+      context.test "cycles", ->
+        assert(x.accept("mazatthew"))
+        assert(x.accept("mazazatthew"))
+        assert(x.accept("mazazazatthew"))
 
     context.test "rejects the expected strings", ->
       assert(!x.accept("mat"))
@@ -47,6 +46,6 @@ Testify.test "Djinn FSA", (context) ->
     tests(context, fsa)
 
   context.test "Dumped and restored", (context) ->
-    dump = fsa.dump();
-    restored = FSA.load(dump);
+    dump = fsa.dump()
+    restored = FSA.load(dump)
     tests(context, restored)

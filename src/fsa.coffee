@@ -1,4 +1,6 @@
 Graphviz = require("./graphviz")
+# TODO: consider setting this module up as a function that takes the Digraph class
+# as an argument, so you can have FSAs based on varying Digraph implementations.
 Digraph = require("./naive_digraph")
 
 class SequenceAcceptor extends Digraph

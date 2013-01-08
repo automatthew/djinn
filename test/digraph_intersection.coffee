@@ -1,7 +1,7 @@
+Testify = require "testify"
+assert = require "assert"
 
-assert = require("assert")
 Digraph = require("../src/djinn").NaiveDigraph
-
 
 nouns = new Digraph()
 nouns.add_path("deal")
@@ -19,9 +19,22 @@ verbs.add_path("make")
 verbs.add_path("sand")
 verbs.add_path("sell")
 
+inter = nouns.intersect(verbs)
+inter.write_graph("inter.dot")
+
+
+Testify.test "Digraph intersection", (context) ->
+
+  context.test "Expected paths", ->
+    assert.deepEqual inter.paths(), [
+      "deal".split(""),
+      "project".split(""),
+      "cla".split(""),
+      "sand".split(""),
+    ]
+
+
 #nouns.write_graph("nouns.dot")
 #verbs.write_graph("verbs.dot")
 
-inter = nouns.intersect(verbs)
-inter.write_graph("inter.dot")
 

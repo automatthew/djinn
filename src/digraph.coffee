@@ -1,9 +1,8 @@
 Graphviz = require("./graphviz")
 
 # Class for creating a directed graph with a global source.
-# You can't use this class directly, as it lacks the nested
-# Vertex and Arc classes.  Extend it and define your own
-# support classes, a la NaiveDigraph.
+# You can't use this class directly, as it lacks the methods for creating arcs
+# and vertices.  Extend it and define your own methods, a la NaiveDigraph.
 class Digraph
 
   constructor: () ->
@@ -47,19 +46,12 @@ class Digraph
 
   class @IntersectionHelper
     constructor: (graph1, graph2, @intersection) ->
+      # TODO: document the algorithms involved, finding the source used if possible.
       @unvisited = {}
       @product_vertices = {}
       root_key = @vkey(graph1.source, graph2.source)
       @unvisited[root_key] = [graph1.source, graph2.source]
       @product_vertices[root_key] = @intersection.source
-
-    vkey: (v1, v2) ->
-      "#{v1.id},#{v2.id}"
-
-    add_unvisited: (v1, v2, product_vertex) ->
-      key = @vkey(v1, v2)
-      @unvisited[key] = [v1, v2]
-      @product_vertices[key] = product_vertex
 
     get_next_vertices: ->
       keys = Object.keys(@unvisited)
@@ -71,9 +63,9 @@ class Digraph
         delete @unvisited[key]
         [v1, v2, @product_vertices[key]]
 
-    # this only works if arc equivalence is assumed to mean
-    # that the arcs have the same @value
     intersect_arcs: (v1, v2, callback) ->
+      # this only works if arc equivalence is assumed to mean
+      # that the arcs have the same @value
       vals = {}
       for arc in v1.arcs()
         vals[arc.value] = arc
@@ -88,6 +80,15 @@ class Digraph
         @add_unvisited(v1, v2, vertex)
       vertex
 
+    # Helper methods
+    vkey: (v1, v2) ->
+      "#{v1.id},#{v2.id}"
+
+    add_unvisited: (v1, v2, product_vertex) ->
+      key = @vkey(v1, v2)
+      @unvisited[key] = [v1, v2]
+      @product_vertices[key] = product_vertex
+
 
   intersect_vertices: (v1, v2) ->
     # FSMs will need to implement sink/final checking by overriding
@@ -98,9 +99,8 @@ class Digraph
   # return a new digraph that is the intersection of the two graphs.  
   # NOTE: FSM subclasses will end up with sinks that aren't final.
   intersect: (other) ->
-    digraph = @
     product = new @constructor()
-    helper = new @constructor.IntersectionHelper(digraph, other, product)
+    helper = new @constructor.IntersectionHelper(@, other, product)
 
     while (next_vertices = helper.get_next_vertices())
       [this_vertex, other_vertex, product_vertex] = next_vertices
@@ -137,6 +137,21 @@ class Digraph
           next.push(arc.next_vertex)
       return next
 
+  paths: ->
+    list = []
+    @_paths(@source, list)
+    list
+
+  _paths: (vertex, list, path=[]) ->
+    if vertex.arcs().length == 0
+      list.push(path)
+    else
+      for arc in vertex.arcs()
+        path.push(arc.value)
+        @_paths(arc.next_vertex, list, path)
+        path = []
+
+
   write_graph: (filename) ->
     fs = require("fs")
     string = @format_graph()
@@ -167,17 +182,16 @@ class Digraph
     new @().load(args...)
 
   load: (dump, arc_callback, states_callback) ->
-    digraph = @
     arcs = dump.arcs
     tmpStates = {}
-    tmpStates[digraph.source.id] = digraph.source
+    tmpStates[@source.id] = @source
 
     for arc in arcs
-      tmpStates[arc.vertex] ||= digraph.create_vertex(arc.vertex)
-      tmpStates[arc.next] ||= digraph.create_vertex(arc.next)
+      tmpStates[arc.vertex] ||= @create_vertex(arc.vertex)
+      tmpStates[arc.next] ||= @create_vertex(arc.next)
       vertex1 = tmpStates[arc.vertex]
       vertex2 = tmpStates[arc.next]
-      digraph.add_arc(vertex1, vertex2, arc.val)
+      @add_arc(vertex1, vertex2, arc.val)
       callback(arc) if arc_callback
     states_callback(tmpStates) if states_callback
     @

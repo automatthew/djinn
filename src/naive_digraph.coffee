@@ -4,10 +4,20 @@ Graphviz = require("./graphviz")
 class NaiveDigraph extends Digraph
 
   constructor: () ->
-    super()
     @vertex_id_counter = 0
     @arc_id_counter = 0
+    super()
 
+  # Methods required by parent class
+  create_vertex: (id=null) ->
+    id ||= @next_vertex_id()
+    new @constructor.Vertex(@, id)
+
+  create_arc: (vertex1, vertex2, value, id=null) ->
+    id ||= @next_arc_id()
+    new @constructor.Arc(@, vertex1, vertex2, value, id)
+
+  # Method overrides
   dump: (callback) ->
     data = super(callback)
     data.vertex_id_counter = this.vertex_id_counter
@@ -20,20 +30,12 @@ class NaiveDigraph extends Digraph
     @arc_id_counter = dump.arc_id_counter
     @
 
+  # Helper methods
   next_vertex_id: ->
     @vertex_id_counter++
 
   next_arc_id: ->
     @arc_id_counter++
-
-  create_vertex: (id=null) ->
-    id ||= @next_vertex_id()
-    new @constructor.Vertex(@, id)
-
-  create_arc: (vertex1, vertex2, value, id=null) ->
-    id ||= @next_arc_id()
-    new @constructor.Arc(@, vertex1, vertex2, value, id)
-
 
   class @Vertex
     constructor: (@digraph, @id) ->
