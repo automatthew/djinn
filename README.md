@@ -1,5 +1,8 @@
 # Djinn:  Finite State Automata in Javascript
 
+[![Build Status](https://travis-ci.org/automatthew/djinn.png)](https://travis-ci.org/automatthew/[djinn])
+
+
 Inspirations:
 
 * [OpenFST](http://www.openfst.org/twiki/bin/view/FST/WebHome)
