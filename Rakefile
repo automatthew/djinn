@@ -7,24 +7,22 @@ task "build" do
 end
 
 desc "run tests"
-task "test" => %w[test:fsa test:digraph]
+task "test" => %w[ test:fsa test:digraph ]
 
 task "test:fsa" do
-  sh "coffee test/crappy_test.coffee"
+  sh "coffee test/fsa_test.coffee"
 end
 
 task "test:digraph" do
-  sh "coffee test/digraph.coffee"
+  sh "coffee test/digraph_intersection.coffee"
 end
 
-task "test:digraph:dot" => "test:digraph" do
-  sh "dot -Tpng inter.dot > inter.png"
+rule ".png" => ".dot" do |t|
+  sh "dot -Tpng #{t.source} > #{t.name}"
 end
 
-task "dot" do
-  files = FileList["**/*.dot"]
-  files.each do |file|
-    outfile = file.sub(/\.dot$/, ".png")
-    sh "dot -Tpng #{file} > #{outfile}"
-  end
+FileList["**/*.dot"].map do |file|
+  name = file.sub(".dot", ".png")
+  task "pngs" => name
 end
+
