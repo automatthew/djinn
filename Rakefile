@@ -1,6 +1,10 @@
-require "starter/tasks/npm"
-require "starter/tasks/git"
-require "starter/tasks/github"
+begin
+  require "starter/tasks/npm"
+  require "starter/tasks/git"
+  require "starter/tasks/github"
+rescue LoadError => e
+  warn "Missing Starter gem: relevant tasks will not be available"
+end
 
 task "build" do
 	sh "coffee --compile --bare --output build/ src/"
